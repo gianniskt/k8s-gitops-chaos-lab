@@ -1,6 +1,6 @@
 # GitOps Chaos Engineering Demo
 
-A Kubernetes chaos engineering lab using GitOps for continuous deployment and automated resilience testing.
+Kubernetes GitOps Homelab with Flux, Linkerd, Cert-Manager, Chaos Mesh & Prometheus
 
 ## Architecture Overview
 
@@ -10,14 +10,14 @@ A Kubernetes chaos engineering lab using GitOps for continuous deployment and au
 
 - **Applications**: Python backend + HTML frontend microservices
 - **GitOps**: FluxCD configuration for automated deployments
-- **Chaos Engineering**: Chaos Mesh schedules that kill pods every minute
+- **Chaos Engineering**: Chaos Mesh schedules
 - **Monitoring**: Prometheus + Grafana dashboards for observability
 - **Deployment**: One-command setup script for local Kind cluster
 
 ## What It Does
 
 1. **Deploys microservices** using FluxCD GitOps from this Git repository
-2. **Automatically kills backend pods** every minute using Chaos Mesh Schedule
+2. **Apply Chaos Experiments** regarding pods, network and other k8s components
 3. **Monitors chaos impact** with Prometheus metrics and Grafana dashboards
 4. **Self-heals** through Kubernetes Deployment controllers (pods auto-restart)
 5. **Syncs changes** - any Git commits automatically deploy to cluster
@@ -78,37 +78,9 @@ kubectl get schedule -n chaos-testing
 
 ```
 k8s-gitops-chaos-lab/
-├── scripts/
-│   ├── deploy.sh                # One-command deployment script
-│   └── fix-linkerd-dashboard.sh # Linkerd dashboard troubleshooting script
-├── app/
-│   ├── backend/                 # Python Flask microservice
-│   └── frontend/                # Static HTML frontend
-└── gitops/
-    ├── flux/
-    │   ├── kustomization.yaml   # Flux configuration orchestration
-    │   └── fluxinstance.yaml    # FluxCD Git sync configuration
-    ├── manifests/
-    │   ├── kustomization.yaml   # Main GitOps orchestration
-    │   ├── namespaces.yaml      # Kubernetes namespaces
-    │   ├── backend.yaml         # Backend app deployment
-    │   ├── frontend.yaml        # Frontend app deployment
-    │   └── chaos-experiments-kustomization.yaml  # Dependent kustomization
-    ├── chaos-mesh/
-    │   ├── kustomization.yaml   # Chaos Mesh orchestration
-    │   ├── chaosmesh-repo.yaml  # Helm repository
-    │   └── chaosmesh-install.yaml  # Chaos Mesh installation
-    ├── monitoring/
-    │   ├── kustomization.yaml   # Monitoring orchestration
-    │   ├── helmrepo.yaml        # Prometheus Helm repository
-    │   ├── monitoring-stack.yaml  # Prometheus + Grafana stack
-    │   └── dashboards/
-    │       └── chaos-dashboard.yaml  # Custom Grafana dashboard
-    └── chaos-experiments/
-        ├── kustomization.yaml   # Chaos experiments orchestration
-        ├── pod-chaos.yaml       # One-time pod kill chaos
-        ├── pod-chaos-schedule.yaml  # Scheduled pod kills (every 1min)
-        └── chaos-servicemonitor.yaml  # Prometheus monitoring integration
+├── scripts/                    # Deployment and troubleshooting scripts
+├── app/                        # Demo applications (backend/frontend microservices)
+└── gitops/                     # GitOps configurations and Kubernetes manifests
 ```
 
 ## Cleanup

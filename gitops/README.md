@@ -20,6 +20,71 @@ gitops/
 └── reloader/                     # Configuration reloader for secrets/configmaps
 ```
 
+## Detailed File Structure
+
+```
+gitops/
+├── README.md                     # This documentation file
+├── flux/
+│   ├── kustomization.yaml        # Flux configuration orchestration
+│   └── fluxinstance.yaml         # FluxCD Git sync configuration
+├── kustomizations/               # Flux Kustomization definitions
+│   ├── kustomization.yaml        # Master kustomization with dependency chain
+│   ├── namespaces.yaml           # Kubernetes namespaces creation
+│   ├── cert-manager-kustomization.yaml     # cert-manager deployment
+│   ├── linkerd-certificates-kustomization.yaml   # Linkerd certificates
+│   ├── linkerd-kustomization.yaml         # Linkerd service mesh
+│   ├── manifests-kustomization.yaml       # Application manifests
+│   ├── monitoring-kustomization.yaml      # Monitoring stack
+│   ├── reloader-kustomization.yaml        # Configuration reloader
+│   ├── chaos-mesh-kustomization.yaml      # Chaos Mesh operator
+│   └── chaos-experiments-kustomization.yaml   # Chaos experiments
+├── cert-manager/                 # Certificate management
+│   ├── kustomization.yaml        # cert-manager orchestration
+│   ├── cert-manager-repo.yaml    # cert-manager Helm repository
+│   └── cert-manager.yaml         # cert-manager installation
+├── linkerd/                      # Linkerd service mesh
+│   ├── kustomization.yaml        # Linkerd orchestration
+│   ├── linkerd-repo.yaml         # Linkerd Helm repository
+│   ├── linkerd-crds.yaml         # Linkerd CRDs
+│   ├── linkerd-control-plane.yaml   # Linkerd control plane
+│   └── linkerd-viz.yaml          # Linkerd visualization extension
+├── linkerd-certificates/         # Linkerd mTLS certificates
+│   ├── kustomization.yaml        # Certificate orchestration
+│   └── linkerd-certificates.yaml # Certificate definitions with comments
+├── manifests/                    # Application deployments
+│   ├── kustomization.yaml        # Application orchestration
+│   ├── namespaces.yaml           # Application namespaces
+│   ├── backend.yaml              # Backend deployment
+│   ├── frontend.yaml             # Frontend deployment
+│   └── servicemonitor-apps.yaml  # Application monitoring
+├── monitoring/                   # Prometheus/Grafana monitoring
+│   ├── kustomization.yaml        # Monitoring orchestration
+│   ├── helmrepo.yaml             # Prometheus Helm repository
+│   ├── monitoring-stack.yaml     # Prometheus + Grafana stack
+│   └── dashboards/
+│       └── chaos-dashboard.yaml  # Custom Grafana dashboard
+├── reloader/                     # Configuration reloader
+│   ├── kustomization.yaml        # Reloader orchestration
+│   ├── stakater-helm-repo.yaml   # Reloader Helm repository
+│   └── reloader.yaml             # Reloader installation
+├── chaos-mesh/                   # Chaos Mesh operator
+│   ├── kustomization.yaml        # Chaos Mesh orchestration
+│   ├── chaosmesh-repo.yaml       # Chaos Mesh Helm repository
+│   └── chaosmesh-install.yaml    # Chaos Mesh installation
+└── chaos-experiments/            # Chaos engineering experiments
+    ├── kustomization.yaml        # Chaos experiments orchestration
+    ├── CHAOS-TESTING.md          # Chaos testing documentation
+    ├── chaos-schedules.yaml      # Chaos experiment schedules
+    ├── chaos-servicemonitor.yaml # Chaos monitoring
+    ├── linkerd-metrics-chaos.yaml   # Linkerd metrics chaos
+    ├── linkerd-metrics-schedules.yaml   # Linkerd metrics schedules
+    ├── linkerd-traffic-chaos.yaml # Linkerd traffic chaos
+    ├── minimal-working-chaos.yaml # Minimal chaos experiments
+    ├── podmonitor-flux.yaml      # Flux pod monitoring
+    └── servicemonitor-flux.yaml  # Flux service monitoring
+```
+
 ## Deployment Order and Dependencies
 
 The platform follows a strict deployment order to ensure proper dependency resolution. Components are deployed sequentially using Flux Kustomizations with explicit dependency management.
