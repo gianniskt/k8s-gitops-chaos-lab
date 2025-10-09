@@ -60,7 +60,6 @@ logs/
 # Kubernetes/Flux
 .kube/
 kubectl
-flux
 *.yaml.bak
 *.yml.bak
 
