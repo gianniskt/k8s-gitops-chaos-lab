@@ -1,10 +1,32 @@
+# Linkerd Certificate Management Configuration
+# This file sets up the complete certificate infrastructure for Linkerd service mesh mTLS
+# It creates a root CA (trust anchor) and intermediate CA (identity issuer) hierarchy
+# that Linkerd uses to issue certificates to proxy sidecars for secure communication
+
+---
+# Root Certificate Authority (CA) for Linkerd
+# This ClusterIssuer creates self-signed certificates that serve as the root of trust
+# for the entire Linkerd service mesh. All other certificates in the mesh are signed
+# by certificates that ultimately chain back to this root CA.
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: linkerd-ca
 spec:
   selfSigned: {}
+
 ---
+# Trust Anchor Certificate - Root CA Certificate
+# This is the foundational certificate that establishes the root of trust for Linkerd.
+# - isCA: true - This certificate can sign other certificates
+# - commonName: Identifies this as the root CA for the cluster
+# - secretName: Where the certificate and private key are stored
+# - issuerRef: References the self-signed issuer above
+# - duration: 1 year validity (8760 hours)
+# - renewBefore: Renew 30 days before expiration
+# - privateKey: Uses ECDSA with P-256 curve for modern security
+# - rotationPolicy: Always rotate private keys for security
+# - usages: Allows this CA to sign certificates and CRLs
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -31,7 +53,12 @@ spec:
     - crl sign
     - digital signature
     - key encipherment
+
 ---
+# Trust Anchor Issuer - Allows certificates to be signed by the trust anchor
+# This Issuer references the trust anchor certificate above and allows
+# cert-manager to issue certificates signed by the root CA.
+# This is used to create the intermediate identity issuer certificate.
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
@@ -40,7 +67,15 @@ metadata:
 spec:
   ca:
     secretName: linkerd-trust-anchor
+
 ---
+# Identity Issuer Certificate - Intermediate CA for proxy certificates
+# This is an intermediate Certificate Authority that Linkerd's identity controller
+# uses to sign certificates for individual proxy sidecars.
+# - Shorter lifetime (30 days) than root CA for better security
+# - Signed by the trust anchor (root CA) creating a proper CA hierarchy
+# - Used by Linkerd to issue certificates to service proxies on-demand
+# - The identity controller automatically rotates these certificates
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -67,26 +102,42 @@ spec:
     - crl sign
     - digital signature
     - key encipherment
+
 ---
+# Service Account for Trust Synchronization
+# This service account is used by the trust sync job to access and modify
+# Kubernetes resources (secrets, configmaps, certificates) needed to keep
+# Linkerd's trust configuration synchronized with cert-manager certificates.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: linkerd-trust-sync
   namespace: linkerd
+
 ---
+# RBAC Role for Trust Synchronization
+# Grants permissions to read/write secrets and configmaps, and read certificates.
+# This allows the trust sync job to:
+# - Access certificate secrets created by cert-manager
+# - Read and update the linkerd-identity-trust-roots ConfigMap
+# - Monitor certificate status for readiness checks
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: linkerd-trust-sync
   namespace: linkerd
 rules:
-- apiGroups: [""]
+- apiGroups: [""]  # Core API group
   resources: ["secrets", "configmaps"]
   verbs: ["get", "list", "create", "update", "patch", "delete"]
 - apiGroups: ["cert-manager.io"]
   resources: ["certificates"]
   verbs: ["get", "list", "watch"]
+
 ---
+# Role Binding for Trust Synchronization
+# Binds the trust-sync role to the trust-sync service account,
+# allowing the job to perform necessary operations.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -100,9 +151,24 @@ subjects:
 - kind: ServiceAccount
   name: linkerd-trust-sync
   namespace: linkerd
+
 ---
-# Simple one-time Job to fix trust anchor ConfigMap after Linkerd deployment
-# This runs after Linkerd creates the ConfigMap and fixes the empty ca-bundle.crt
+# Trust Anchor Synchronization Job
+# This job runs once after Linkerd deployment to synchronize the trust anchor
+# ConfigMap with the certificate data from cert-manager.
+#
+# Why this is needed:
+# - Linkerd Helm chart creates an empty linkerd-identity-trust-roots ConfigMap
+# - cert-manager creates certificates asynchronously after Linkerd deployment
+# - This job waits for certificates to be ready, then populates the ConfigMap
+# - The populated ConfigMap is used by Linkerd proxies to validate certificates
+#
+# How it works:
+# 1. Waits for Linkerd to create the ConfigMap
+# 2. Waits for certificates to be ready
+# 3. Extracts the CA certificate from the identity issuer secret
+# 4. Updates the ConfigMap's ca-bundle.crt field
+# 5. Adds reloader annotation to trigger proxy restarts
 apiVersion: batch/v1
 kind: Job
 metadata:
