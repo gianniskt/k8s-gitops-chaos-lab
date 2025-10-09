@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend</title>
+</head>
+<body>
+    <h1>Frontend</h1>
+    <button onclick="fetchMessage()">Fetch Message from Backend</button>
+    <p id="message"></p>
+
+    <script>
+        function fetchMessage() {
+            fetch('http://backend.app-backend.svc.cluster.local/api/message')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('message').innerText = `Message: ${data.message}, Hostname: ${data.hostname}`;
+                })
+                .catch(error => {
+                    document.getElementById('message').innerText = `Error: ${error}`;
+                    console.error('There has been a problem with your fetch operation:', error);
+                });
+        }
+    </script>
+</body>
+</html>

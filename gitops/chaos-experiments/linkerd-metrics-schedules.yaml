@@ -1,0 +1,197 @@
+---
+# Linkerd Service Mesh Metrics Testing Schedule
+# Coordinated chaos experiments to test specific Linkerd observability metrics
+
+# Schedule 1: HTTP Success Rate Testing (Every 10 minutes)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: linkerd-http-success-rate-test
+  namespace: chaos-testing
+  labels:
+    schedule-type: "linkerd-http-metrics"
+spec:
+  schedule: "*/10 * * * *"  # Every 10 minutes
+  type: "PodChaos"
+  podChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: one
+    action: pod-kill
+    duration: "0s"
+
+---
+# Schedule 2: HTTP Latency Impact Testing (Every 15 minutes)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: linkerd-latency-impact-test
+  namespace: chaos-testing
+  labels:
+    schedule-type: "linkerd-latency-metrics"
+spec:
+  schedule: "5,20,35,50 * * * *"  # Every 15 minutes, offset by 5
+  type: "NetworkChaos"
+  networkChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: one
+    action: delay
+    delay:
+      latency: "200ms"
+      correlation: "100"
+      jitter: "100ms"
+    duration: "2m"
+    direction: to
+
+---
+# Schedule 3: TCP Metrics Testing (Every 20 minutes)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: linkerd-tcp-metrics-test
+  namespace: chaos-testing
+  labels:
+    schedule-type: "linkerd-tcp-metrics"
+spec:
+  schedule: "2,22,42 * * * *"  # Every 20 minutes, offset by 2
+  type: "NetworkChaos"
+  networkChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: one
+    action: loss
+    loss:
+      loss: "10"
+      correlation: "25"
+    duration: "90s"
+    direction: to
+
+---
+# Schedule 4: Resource Stress for Performance Metrics (Every 25 minutes)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: linkerd-performance-stress-test
+  namespace: chaos-testing
+  labels:
+    schedule-type: "linkerd-performance-metrics"
+spec:
+  schedule: "7,32,57 * * * *"  # Every 25 minutes, offset by 7
+  type: "StressChaos"
+  stressChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: one
+    stressors:
+      cpu:
+        workers: 1
+        load: 70
+      memory:
+        workers: 1
+        size: "83886080"
+    duration: "3m"
+
+---
+# Schedule 5: Multi-Pod Failure for Load Balancing (Every 30 minutes)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: linkerd-load-balancing-test
+  namespace: chaos-testing
+  labels:
+    schedule-type: "linkerd-load-balancing"
+spec:
+  schedule: "12,42 * * * *"  # Every 30 minutes, offset by 12
+  type: "PodChaos"
+  podChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: fixed-percent
+    value: "50"
+    action: pod-failure
+    duration: "45s"
+
+---
+# Schedule 6: Advanced Network Chaos for Edge Cases (Every 45 minutes)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: linkerd-edge-case-test
+  namespace: chaos-testing
+  labels:
+    schedule-type: "linkerd-edge-cases"
+spec:
+  schedule: "17,47 * * * *"  # Every 30 minutes, offset by 17
+  type: "NetworkChaos"
+  networkChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: one
+    action: partition
+    direction: to
+    externalTargets:
+      - "linkerd-viz.linkerd-viz.svc.cluster.local"
+    duration: "2m"
+
+---
+# Schedule 7: Linkerd Control Plane Resilience (Every hour)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: linkerd-control-plane-test
+  namespace: chaos-testing
+  labels:
+    schedule-type: "linkerd-control-plane"
+spec:
+  schedule: "23 * * * *"  # Every hour at 23 minutes
+  type: "PodChaos"
+  podChaos:
+    selector:
+      namespaces:
+        - linkerd
+      labelSelectors:
+        "linkerd.io/control-plane-component": "destination"
+    mode: one
+    action: pod-kill
+    duration: "0s"
+
+---
+# Schedule 8: Linkerd Viz Components Resilience (Every 2 hours)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: linkerd-viz-resilience-test
+  namespace: chaos-testing
+  labels:
+    schedule-type: "linkerd-viz-resilience"
+spec:
+  schedule: "37 */2 * * *"  # Every 2 hours at 37 minutes
+  type: "PodChaos"
+  podChaos:
+    selector:
+      namespaces:
+        - linkerd-viz
+      labelSelectors:
+        "component": "web"
+    mode: one
+    action: pod-kill
+    duration: "0s"

@@ -1,0 +1,94 @@
+---
+# Traffic Load Generator for Linkerd Metrics Testing
+# This creates HTTP traffic to observe metric changes during chaos
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-generator
+  namespace: chaos-testing
+  labels:
+    app: traffic-generator
+    purpose: linkerd-metrics-testing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traffic-generator
+  template:
+    metadata:
+      labels:
+        app: traffic-generator
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      containers:
+      - name: curl-loop
+        image: curlimages/curl:latest
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            echo "Starting traffic generator for Linkerd metrics testing..."
+            while true; do
+              # HTTP requests to backend service (if it exists)
+              curl -s http://backend.app-backend.svc.cluster.local/ || echo "Backend request failed"
+              curl -s http://backend.app-backend.svc.cluster.local/health || echo "Health check failed"
+              
+              # Random delay between requests (1-5 seconds)
+              sleep $(( $RANDOM % 5 + 1 ))
+            done
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "10m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+
+---
+# Simple Network Delay for Latency Testing
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: traffic-latency-test
+  namespace: chaos-testing
+  labels:
+    experiment-type: "linkerd-traffic-testing"
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: one
+  action: delay
+  delay:
+    latency: "300ms"
+    correlation: "100"
+    jitter: "100ms"
+  direction: to
+  duration: "2m"
+
+---
+# Simple Packet Loss for Success Rate Testing  
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: traffic-loss-test
+  namespace: chaos-testing
+  labels:
+    experiment-type: "linkerd-traffic-testing"
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: one
+  action: loss
+  loss:
+    loss: "20"
+    correlation: "50"
+  direction: to
+  duration: "90s"

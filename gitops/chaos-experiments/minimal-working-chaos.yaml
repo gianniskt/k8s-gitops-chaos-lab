@@ -1,0 +1,55 @@
+---
+# Essential chaos experiments for Kind
+# Core demonstrations of chaos engineering
+
+# Pod Kill Chaos - Demonstrates pod resilience
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-kill-simple
+  namespace: chaos-testing
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: one
+  action: pod-kill
+  duration: "0s"
+
+---
+# DNS Chaos - Demonstrates network/DNS resilience
+apiVersion: chaos-mesh.org/v1alpha1
+kind: DNSChaos
+metadata:
+  name: dns-chaos-simple
+  namespace: chaos-testing
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: one
+  action: error
+  patterns:
+    - "google.com"
+  duration: "30s"
+
+---
+# Flux Controller Restart - Tests Flux resilience
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: flux-controller-restart
+  namespace: chaos-testing
+spec:
+  selector:
+    namespaces:
+      - flux-system
+    labelSelectors:
+      "app.kubernetes.io/part-of": "flux"
+  mode: one
+  action: pod-kill
+  duration: "0s"

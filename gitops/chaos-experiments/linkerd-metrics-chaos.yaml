@@ -1,0 +1,230 @@
+---
+# Advanced Chaos Experiments for Linkerd Service Mesh Metrics Testing
+# These experiments target specific Linkerd observability metrics
+
+# 1. HTTP Success Rate Impact - Network Failures
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: http-success-rate-impact
+  namespace: chaos-testing
+  labels:
+    experiment-type: "linkerd-http-metrics"
+    target-metric: "success-rate"
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: one
+  action: loss
+  loss:
+    loss: "15"
+    correlation: "25"
+  duration: "2m"
+  direction: to
+
+---
+# 2. HTTP P50/P95 Latency Impact - Network Delay
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: http-latency-impact
+  namespace: chaos-testing
+  labels:
+    experiment-type: "linkerd-http-metrics"
+    target-metric: "latency-p50-p95"
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: one
+  action: delay
+  delay:
+    latency: "100ms"
+    correlation: "100"
+    jitter: "50ms"
+  duration: "3m"
+  direction: to
+
+---
+# 3. CPU Stress for Latency Impact
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: cpu-stress-latency
+  namespace: chaos-testing
+  labels:
+    experiment-type: "linkerd-http-metrics"
+    target-metric: "latency-cpu-impact"
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: one
+  stressors:
+    cpu:
+      workers: 2
+      load: 80
+  duration: "2m"
+
+---
+# 4. Memory Pressure for HTTP Performance
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: memory-pressure-http
+  namespace: chaos-testing
+  labels:
+    experiment-type: "linkerd-http-metrics"
+    target-metric: "http-performance"
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: one
+  stressors:
+    memory:
+      workers: 1
+      size: "104857600"
+  duration: "90s"
+
+---
+# 5. TCP Connection Disruption
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: tcp-connection-disruption
+  namespace: chaos-testing
+  labels:
+    experiment-type: "linkerd-tcp-metrics"
+    target-metric: "tcp-connections"
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: one
+  action: partition
+  direction: to
+  duration: "45s"
+
+---
+# 6. Bandwidth Limitation for TCP Metrics
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: tcp-bandwidth-limit
+  namespace: chaos-testing
+  labels:
+    experiment-type: "linkerd-tcp-metrics"
+    target-metric: "tcp-bandwidth"
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: one
+  action: bandwidth
+  bandwidth:
+    rate: "1mbps"
+    limit: 20971520
+    buffer: 10000
+  duration: "2m"
+  direction: to
+
+---
+# 7. Service Mesh Proxy Stress
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: linkerd-proxy-restart
+  namespace: chaos-testing
+  labels:
+    experiment-type: "linkerd-proxy-resilience"
+    target-metric: "mesh-resilience"
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: fixed
+  value: "1"
+  action: pod-kill
+  duration: "0s"
+
+---
+# 8. Multi-Pod Failure for Service Mesh Load Balancing
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: multi-pod-failure-mesh
+  namespace: chaos-testing
+  labels:
+    experiment-type: "linkerd-load-balancing"
+    target-metric: "load-balancing-resilience"
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: fixed-percent
+  value: "50"
+  action: pod-failure
+  duration: "1m"
+
+---
+# 9. Network Partition (Simplified Network Chaos)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-partition
+  namespace: chaos-testing
+  labels:
+    experiment-type: "linkerd-network"
+    target-metric: "connection-reliability"
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: one
+  action: partition
+  direction: to
+  externalTargets:
+    - "linkerd-viz.linkerd-viz.svc.cluster.local"
+  duration: "45s"
+
+---
+# 10. Container Kill for Graceful Shutdown Testing
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: container-kill-graceful
+  namespace: chaos-testing
+  labels:
+    experiment-type: "linkerd-graceful-shutdown"
+    target-metric: "graceful-degradation"
+spec:
+  selector:
+    namespaces:
+      - app-backend
+    labelSelectors:
+      "app": "backend"
+  mode: one
+  action: container-kill
+  containerNames:
+    - "backend"
+  duration: "0s"

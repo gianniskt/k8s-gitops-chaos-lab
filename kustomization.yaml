@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Separate Flux Kustomizations with proper dependency chains
+# FluxInstance is applied separately during setup
+resources:
+  #  Deploy Flux Kustomizations with dependency chain:
+  - gitops/kustomizations/
+
+# Dependency chain ensures proper installation order:
+# 1. manifests (namespaces, apps) 
+# 2. monitoring (Prometheus, ServiceMonitor CRDs)
+# 3. chaos-mesh (Chaos Mesh installation)
+# 4. chaos-experiments (chaos experiments)

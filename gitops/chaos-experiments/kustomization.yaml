@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ESSENTIAL chaos experiments for Kind
+# Core demonstrations of chaos engineering + automated schedules + Linkerd metrics testing
+resources:
+  # Essential chaos experiments - pod-kill + dns-chaos + flux-restart
+  - minimal-working-chaos.yaml
+  
+  # Automated schedules for continuous chaos testing
+  - chaos-schedules.yaml
+  
+  # Linkerd Service Mesh Metrics Testing
+  - linkerd-metrics-chaos.yaml
+  - linkerd-metrics-schedules.yaml
+  - linkerd-traffic-chaos.yaml
+  
+  # Monitoring integration
+  - chaos-servicemonitor.yaml
+  - servicemonitor-flux.yaml
+  - podmonitor-flux.yaml
+
+# ✅ ESSENTIAL EXPERIMENTS:
+# - pod-kill-simple (PodChaos with pod-kill action)
+#   * Instantly kills one backend pod
+#   * Demonstrates Kubernetes self-healing
+# - dns-chaos-simple (DNSChaos)
+#   * Causes DNS resolution errors for google.com
+#   * Demonstrates network/DNS resilience
+#
+# Both experiments provide clear observable impact in Grafana
+# with minimal complexity for demos/learning

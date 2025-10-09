@@ -1,0 +1,24 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: chaos-mesh
+  namespace: chaos-testing
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: chaos-mesh
+      version: '2.6.3'
+      sourceRef:
+        kind: HelmRepository
+        name: chaos-mesh
+        namespace: flux-system
+  values:
+    # Minimal configuration for basic chaos experiments
+    # Only enable what's needed for pod-kill, pod-failure, and dns-chaos
+    chaosDaemon:
+      # hostNetwork: true - Only needed for NetworkChaos (which we disabled)
+      # privileged: true - Only needed for container manipulation (which we disabled)
+      # Try with minimal permissions first
+      hostNetwork: false
+      privileged: false

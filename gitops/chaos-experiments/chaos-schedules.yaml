@@ -1,0 +1,61 @@
+---
+# Schedule for Backend Pod Kill Chaos - Every 2 minutes
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: backend-pod-kill-schedule
+  namespace: chaos-testing
+spec:
+  schedule: "@every 2m"  # Every 2 minutes
+  type: PodChaos
+  podChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: one
+    action: pod-kill
+    duration: "0s"
+
+---
+# Schedule for Flux Controller Restart - Every 2 minutes
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: flux-controller-restart-schedule
+  namespace: chaos-testing
+spec:
+  schedule: "@every 2m"  # Every 2 minutes
+  type: PodChaos
+  podChaos:
+    selector:
+      namespaces:
+        - flux-system
+      labelSelectors:
+        "app.kubernetes.io/part-of": "flux"
+    mode: one
+    action: pod-kill
+    duration: "0s"
+
+---
+# Schedule for DNS Chaos - Every 2 minutes
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: dns-chaos-schedule
+  namespace: chaos-testing
+spec:
+  schedule: "@every 2m"  # Every 2 minutes
+  type: DNSChaos
+  dnsChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: one
+    action: error
+    patterns:
+      - "google.com"
+    duration: "30s"

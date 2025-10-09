@@ -1,0 +1,156 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: linkerd-ca
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: linkerd-trust-anchor
+  namespace: linkerd
+spec:
+  isCA: true
+  commonName: root.linkerd.cluster.local
+  secretName: linkerd-trust-anchor
+  issuerRef:
+    name: linkerd-ca
+    kind: ClusterIssuer
+  subject:
+    organizationalUnits:
+      - linkerd
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  usages:
+    - cert sign
+    - crl sign
+    - digital signature
+    - key encipherment
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: linkerd-trust-anchor-issuer
+  namespace: linkerd
+spec:
+  ca:
+    secretName: linkerd-trust-anchor
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: linkerd-identity-issuer
+  namespace: linkerd
+spec:
+  isCA: true
+  commonName: identity.linkerd.cluster.local
+  secretName: linkerd-identity-issuer
+  issuerRef:
+    name: linkerd-trust-anchor-issuer
+    kind: Issuer
+  subject:
+    organizationalUnits:
+      - linkerd
+  duration: 720h # 30 days
+  renewBefore: 168h # 7 days
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  usages:
+    - cert sign
+    - crl sign
+    - digital signature
+    - key encipherment
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: linkerd-trust-sync
+  namespace: linkerd
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: linkerd-trust-sync
+  namespace: linkerd
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "configmaps"]
+  verbs: ["get", "list", "create", "update", "patch", "delete"]
+- apiGroups: ["cert-manager.io"]
+  resources: ["certificates"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: linkerd-trust-sync
+  namespace: linkerd
+roleRef:
+  kind: Role
+  name: linkerd-trust-sync
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: linkerd-trust-sync
+  namespace: linkerd
+---
+# Simple one-time Job to fix trust anchor ConfigMap after Linkerd deployment
+# This runs after Linkerd creates the ConfigMap and fixes the empty ca-bundle.crt
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: linkerd-trust-sync-initial
+  namespace: linkerd
+spec:
+  template:
+    spec:
+      containers:
+      - name: trust-sync
+        image: bitnami/kubectl:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "Starting trust anchor ConfigMap fix..."
+          
+          # Wait for the ConfigMap to exist (created by Linkerd Helm chart)
+          while ! kubectl get configmap linkerd-identity-trust-roots -n linkerd >/dev/null 2>&1; do
+            echo "Waiting for linkerd-identity-trust-roots ConfigMap to be created by Linkerd..."
+            sleep 5
+          done
+          
+          # Wait for certificates to be ready
+          kubectl wait --for=condition=Ready certificate/linkerd-trust-anchor -n linkerd --timeout=300s
+          kubectl wait --for=condition=Ready certificate/linkerd-identity-issuer -n linkerd --timeout=300s
+          
+          # Get the CA certificate from the identity issuer secret (intermediate CA)
+          CA_CERT=$(kubectl get secret linkerd-identity-issuer -n linkerd -o jsonpath='{.data.tls\.crt}' | base64 -d)
+          
+          if [ -z "$CA_CERT" ]; then
+            echo "ERROR: Could not retrieve CA certificate from linkerd-identity-issuer secret"
+            exit 1
+          fi
+          
+          echo "Retrieved CA certificate, updating ConfigMap ca-bundle.crt field..."
+          
+          # Use kubectl to update the ca-bundle.crt field with proper escaping
+          kubectl get configmap linkerd-identity-trust-roots -n linkerd -o json | \
+            jq --arg cert "$CA_CERT" '.data["ca-bundle.crt"] = $cert' | \
+            kubectl apply -f -
+          
+          # Add reloader annotation if not present
+          kubectl annotate configmap linkerd-identity-trust-roots -n linkerd \
+            reloader.stakater.com/match="true" --overwrite
+          
+          echo "Trust anchor ConfigMap updated successfully"
+          echo "ca-bundle.crt field is now populated with the identity issuer certificate"
+      restartPolicy: OnFailure
+      serviceAccountName: linkerd-trust-sync

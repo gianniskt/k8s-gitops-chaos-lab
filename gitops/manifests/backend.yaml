@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: app-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      containers:
+      - name: backend
+        image: backend:local
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: app-backend
+spec:
+  selector:
+    app: backend
+  ports:
+  - port: 80
+    targetPort: 80
