@@ -1,0 +1,7 @@
+# Code Owners
+# This file defines the code owners for this repository
+# When a pull request is opened, the listed owners will be automatically
+# requested for review based on the files changed
+
+# Global owners - applies to all files in the repository
+* @gianniskt
