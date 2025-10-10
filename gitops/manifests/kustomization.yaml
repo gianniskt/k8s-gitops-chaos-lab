@@ -9,4 +9,4 @@ resources:
   - frontend.yaml
   - servicemonitor-apps.yaml
   - ingress-frontend.yaml
-  - backend-ingress.yaml
+  - ingress-backend.yaml
