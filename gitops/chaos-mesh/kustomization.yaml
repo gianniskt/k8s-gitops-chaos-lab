@@ -5,3 +5,4 @@ kind: Kustomization
 resources:
   - chaosmesh-repo.yaml
   - chaosmesh-install.yaml
+  - chaosmesh-ingress.yaml

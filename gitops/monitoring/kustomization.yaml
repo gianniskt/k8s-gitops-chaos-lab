@@ -5,4 +5,5 @@ kind: Kustomization
 resources:
   - helmrepo.yaml
   - monitoring-stack.yaml
+  - grafana-ingress.yaml
   - dashboards/chaos-dashboard.yaml
