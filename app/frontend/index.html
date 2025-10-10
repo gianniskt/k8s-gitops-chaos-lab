@@ -10,7 +10,8 @@
 
     <script>
         function fetchMessage() {
-            fetch('http://backend.app-backend.svc.cluster.local/api/message')
+            // Use same-origin path so browser requests go through the ingress when accessed via frontend.local.test
+            fetch('/api/message')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -18,7 +19,7 @@
                     return response.json();
                 })
                 .then(data => {
-                    document.getElementById('message').innerText = `Message: ${data.message}, Hostname: ${data.hostname}`;
+                    document.getElementById('message').innerText = data.message;
                 })
                 .catch(error => {
                     document.getElementById('message').innerText = `Error: ${error}`;
