@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: linkerd-viz-ingress
+  namespace: linkerd-viz
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # Tell nginx to use the service internal FQDN as Host header so Linkerd accepts it
+    nginx.ingress.kubernetes.io/upstream-vhost: "web.linkerd-viz.svc.cluster.local"
+spec:
+  rules:
+  - host: local.test
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web
+            port:
+              number: 8084
