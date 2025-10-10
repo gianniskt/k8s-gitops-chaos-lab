@@ -224,33 +224,27 @@ kubectl wait --for=condition=Ready pod -l linkerd.io/control-plane-ns=linkerd -n
 echo "✅ Deployment complete!"
 echo ""
 
-# Start port-forwards in background
-echo "🌐 Starting port-forwards for dashboards..."
+# Start port-forwards in background (run unconditionally so dashboards are reachable via localhost)
+echo "🌐 Starting port-forwards for dashboards (background)..."
 
 # Kill any existing port-forwards on these ports
 pkill -f "port-forward.*3000" 2>/dev/null || true
 pkill -f "port-forward.*2333" 2>/dev/null || true
 pkill -f "port-forward.*8084" 2>/dev/null || true
 
-# If not running inside a devcontainer, start port-forwards so localhost works.
-# In devcontainer we rely on k3d loadbalancer and mapped host ports so host browser can access via hostnames.
-if [ -z "$SKIP_INSTALLATIONS" ]; then
-    # Local environment (not container/devcontainer): start port-forwards
-    kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80 > /dev/null 2>&1 &
-    GRAFANA_PID=$!
-    echo "   Started Grafana port-forward (PID: $GRAFANA_PID)"
+# Start Grafana and Chaos port-forwards and bind to all addresses so VS Code/host forwarding can expose them if needed
+kubectl port-forward --address 0.0.0.0 svc/kube-prometheus-stack-grafana -n monitoring 3000:80 > /dev/null 2>&1 &
+GRAFANA_PID=$!
+echo "   Started Grafana port-forward (PID: $GRAFANA_PID)"
 
-    kubectl port-forward svc/chaos-dashboard -n chaos-testing 2333:2333 > /dev/null 2>&1 &
-    CHAOS_PID=$!
-    echo "   Started Chaos Mesh port-forward (PID: $CHAOS_PID)"
+kubectl port-forward --address 0.0.0.0 svc/chaos-dashboard -n chaos-testing 2333:2333 > /dev/null 2>&1 &
+CHAOS_PID=$!
+echo "   Started Chaos Mesh port-forward (PID: $CHAOS_PID)"
 
-    # Linkerd port-forward (kept same behavior)
-    echo "   Starting Linkerd viz dashboard port-forward..."
-else
-    echo "   Running in container/devcontainer: skipping kubectl port-forwards. Use hostnames mapped to 127.0.0.1 (grafana.local.test, linkerd.local.test, chaos.local.test)"
-    # Still attempt Linkerd readiness and do not start port-forward; the loadbalancer will serve ingress on mapped ports.
-    echo "   Skipping Linkerd port-forward in devcontainer."
-fi
+# Start Linkerd port-forward early but allow retry loop below to validate and replace if necessary
+kubectl port-forward --address 0.0.0.0 svc/web -n linkerd-viz 8084:8084 > /dev/null 2>&1 &
+LINKERD_PID=$!
+echo "   Started Linkerd viz port-forward (PID: $LINKERD_PID)"
 
 # Start Linkerd viz dashboard port-forward with retry
 echo "   Starting Linkerd viz dashboard port-forward..."
