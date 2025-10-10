@@ -28,6 +28,14 @@ else
 fi
 echo ""
 
+# When running inside a devcontainer, force port-forwards by default because
+# the k3d loadbalancer published ports may not be reachable from the host
+# (for example: Windows host vs devcontainer network namespaces). Users can
+# still override by exporting FORCE_PORT_FORWARDS=0 before running the script.
+if [ "$SKIP_INSTALLATIONS" = "true" ] ; then
+    FORCE_PORT_FORWARDS=1
+fi
+
 # Install k3d if not present
 if ! command -v k3d >/dev/null 2>&1; then
     echo "📦 Installing k3d..."
@@ -129,6 +137,35 @@ echo "🔄 Reconciling Flux resources in dependency order..."
 echo "    - 1/8: Reconciling flux-system kustomization..."
 flux reconcile kustomization flux-system --with-source 2>/dev/null || echo "⚠️  flux-system reconciliation failed"
 sleep 5
+
+# Helper: wait for a service to have endpoints (useful for validating webhooks)
+wait_for_service_endpoints() {
+    local ns=$1
+    local svc=$2
+    local timeout=${3:-120}
+    echo "    Waiting up to ${timeout}s for endpoints of service $svc in namespace $ns..."
+    local start=$(date +%s)
+    while true; do
+        # Check if endpoints exist and contain subsets
+        if kubectl get endpoints -n "$ns" "$svc" -o jsonpath='{.subsets}' 2>/dev/null | grep -q .; then
+            echo "    ✅ Endpoints ready for $svc in $ns"
+            return 0
+        fi
+        local now=$(date +%s)
+        if [ $((now - start)) -ge "$timeout" ]; then
+            echo "    ⚠️  Timed out waiting for endpoints of $svc in $ns after ${timeout}s"
+            return 1
+        fi
+        sleep 3
+    done
+}
+
+# Wait for ingress-nginx admission webhook service endpoints before applying ingresses
+if ! wait_for_service_endpoints ingress-nginx ingress-nginx-controller-admission 120; then
+    echo "    ❌ ingress-nginx admission service endpoints not ready. The monitoring kustomization may fail to apply due to webhook validation errors."
+    echo "    🔧 You can try rerunning the script after a short wait or manually check: kubectl get endpoints -n ingress-nginx ingress-nginx-controller-admission -o yaml"
+    exit 1
+fi
 
 echo "    - 2/9: Reconciling monitoring kustomization..."
 flux reconcile kustomization monitoring 2>/dev/null || echo "⚠️  monitoring reconciliation failed"
@@ -256,9 +293,13 @@ if [ -z "$FORCE_PORT_FORWARDS" ] && is_port_published 3000; then
     GRAFANA_PID=0
 else
     echo "   Starting Grafana port-forward (local:3000 -> svc/kube-prometheus-stack-grafana:80)"
-    kubectl port-forward --address 0.0.0.0 svc/kube-prometheus-stack-grafana -n monitoring 3000:80 > /dev/null 2>&1 &
+    # Detach using setsid so the forward survives script exit; log to /tmp
+    LOG=/tmp/grafana-portforward.log
+    PIDFILE=/tmp/grafana-portforward.pid
+    setsid sh -c "kubectl port-forward --address 0.0.0.0 svc/kube-prometheus-stack-grafana -n monitoring 3000:80 >\"$LOG\" 2>&1 < /dev/null" &
     GRAFANA_PID=$!
-    echo "   Started Grafana port-forward (PID: $GRAFANA_PID)"
+    echo $GRAFANA_PID > "$PIDFILE" || true
+    echo "   Started Grafana port-forward (PID: $GRAFANA_PID) -> log: $LOG"
 fi
 
 # Chaos Mesh: only port-forward if host port 2333 is NOT published by the loadbalancer
@@ -267,9 +308,12 @@ if [ -z "$FORCE_PORT_FORWARDS" ] && is_port_published 2333; then
     CHAOS_PID=0
 else
     echo "   Starting Chaos Mesh port-forward (local:2333 -> svc/chaos-dashboard:2333)"
-    kubectl port-forward --address 0.0.0.0 svc/chaos-dashboard -n chaos-testing 2333:2333 > /dev/null 2>&1 &
+    LOG=/tmp/chaos-portforward.log
+    PIDFILE=/tmp/chaos-portforward.pid
+    setsid sh -c "kubectl port-forward --address 0.0.0.0 svc/chaos-dashboard -n chaos-testing 2333:2333 >\"$LOG\" 2>&1 < /dev/null" &
     CHAOS_PID=$!
-    echo "   Started Chaos Mesh port-forward (PID: $CHAOS_PID)"
+    echo $CHAOS_PID > "$PIDFILE" || true
+    echo "   Started Chaos Mesh port-forward (PID: $CHAOS_PID) -> log: $LOG"
 fi
 
 # Linkerd viz: only port-forward if host port 8084 is NOT published by the loadbalancer
@@ -288,6 +332,9 @@ for attempt in 1 2 3; do
     fi
 
     kubectl port-forward --address 0.0.0.0 svc/web -n linkerd-viz 8084:8084 > /dev/null 2>&1 &
+    LOG=/tmp/linkerd-portforward.log
+    PIDFILE=/tmp/linkerd-portforward.pid
+    setsid sh -c "kubectl port-forward --address 0.0.0.0 svc/web -n linkerd-viz 8084:8084 >\"$LOG\" 2>&1 < /dev/null" &
     LINKERD_PID=$!
     
     # Test if the port-forward is working and dashboard is responding
