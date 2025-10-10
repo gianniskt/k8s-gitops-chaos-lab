@@ -248,24 +248,26 @@ pkill -f "port-forward.*3000" 2>/dev/null || true
 pkill -f "port-forward.*2333" 2>/dev/null || true
 pkill -f "port-forward.*8084" 2>/dev/null || true
 
+# You can force port-forwards even if k3d loadbalancer publishes the host ports by
+# setting environment variable FORCE_PORT_FORWARDS=1 before running the script.
 # Grafana: only port-forward if host port 3000 is NOT published by the loadbalancer
-if is_port_published 3000; then
+if [ -z "$FORCE_PORT_FORWARDS" ] && is_port_published 3000; then
     echo "   Host port 3000 is already published by k3d loadbalancer — skipping Grafana port-forward"
     GRAFANA_PID=0
 else
     echo "   Starting Grafana port-forward (local:3000 -> svc/kube-prometheus-stack-grafana:80)"
-    kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80 > /dev/null 2>&1 &
+    kubectl port-forward --address 0.0.0.0 svc/kube-prometheus-stack-grafana -n monitoring 3000:80 > /dev/null 2>&1 &
     GRAFANA_PID=$!
     echo "   Started Grafana port-forward (PID: $GRAFANA_PID)"
 fi
 
 # Chaos Mesh: only port-forward if host port 2333 is NOT published by the loadbalancer
-if is_port_published 2333; then
+if [ -z "$FORCE_PORT_FORWARDS" ] && is_port_published 2333; then
     echo "   Host port 2333 is already published by k3d loadbalancer — skipping Chaos Mesh port-forward"
     CHAOS_PID=0
 else
     echo "   Starting Chaos Mesh port-forward (local:2333 -> svc/chaos-dashboard:2333)"
-    kubectl port-forward svc/chaos-dashboard -n chaos-testing 2333:2333 > /dev/null 2>&1 &
+    kubectl port-forward --address 0.0.0.0 svc/chaos-dashboard -n chaos-testing 2333:2333 > /dev/null 2>&1 &
     CHAOS_PID=$!
     echo "   Started Chaos Mesh port-forward (PID: $CHAOS_PID)"
 fi
@@ -279,13 +281,13 @@ for attempt in 1 2 3; do
     echo "   Prometheus ready! Waiting for web component..."
     kubectl wait --for=condition=Ready pod -l component=web -n linkerd-viz --timeout=60s 2>/dev/null || echo "⚠️  Web pod not ready yet"
 
-    if is_port_published 8084; then
+    if [ -z "$FORCE_PORT_FORWARDS" ] && is_port_published 8084; then
         echo "   Host port 8084 is already published by k3d loadbalancer — skipping Linkerd viz port-forward"
         LINKERD_PID=0
         break
     fi
 
-    kubectl port-forward svc/web -n linkerd-viz 8084:8084 > /dev/null 2>&1 &
+    kubectl port-forward --address 0.0.0.0 svc/web -n linkerd-viz 8084:8084 > /dev/null 2>&1 &
     LINKERD_PID=$!
     
     # Test if the port-forward is working and dashboard is responding
