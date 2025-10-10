@@ -5,9 +5,9 @@ metadata:
   namespace: linkerd-viz
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-    # Tell nginx to use the service internal FQDN as Host header so Linkerd accepts it
     nginx.ingress.kubernetes.io/upstream-vhost: "web.linkerd-viz.svc.cluster.local"
 spec:
+  ingressClassName: nginx
   rules:
   - host: local.test
     http:
