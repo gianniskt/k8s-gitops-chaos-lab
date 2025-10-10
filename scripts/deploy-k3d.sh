@@ -50,13 +50,14 @@ if k3d cluster list 2>/dev/null | grep -q "^${CLUSTER_NAME}"; then
     k3d cluster delete ${CLUSTER_NAME}
 fi
 
-k3d cluster create ${CLUSTER_NAME} \
-    --api-port 6550 \
-    --port "8080:80@loadbalancer" \
-    --port "8443:443@loadbalancer" \
-    --k3s-arg "--disable=traefik@server:0" \
-    --wait \
-    --timeout 10m
+k3d cluster create gitops-chaos \
+  --api-port 6550 \
+  --port "80:80@loadbalancer" \
+  --port "3000:3000@loadbalancer" \
+  --port "2333:2333@loadbalancer" \
+  --port "8084:8084@loadbalancer" \
+  --k3s-arg "--disable=traefik@server:0" \
+  --wait --timeout 10m
 
 kubectl config use-context k3d-${CLUSTER_NAME}
 echo "✅ Cluster created"
@@ -231,15 +232,25 @@ pkill -f "port-forward.*3000" 2>/dev/null || true
 pkill -f "port-forward.*2333" 2>/dev/null || true
 pkill -f "port-forward.*8084" 2>/dev/null || true
 
-# Start Grafana port-forward
-kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80 > /dev/null 2>&1 &
-GRAFANA_PID=$!
-echo "   Started Grafana port-forward (PID: $GRAFANA_PID)"
+# If not running inside a devcontainer, start port-forwards so localhost works.
+# In devcontainer we rely on k3d loadbalancer and mapped host ports so host browser can access via hostnames.
+if [ -z "$SKIP_INSTALLATIONS" ]; then
+    # Local environment (not container/devcontainer): start port-forwards
+    kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80 > /dev/null 2>&1 &
+    GRAFANA_PID=$!
+    echo "   Started Grafana port-forward (PID: $GRAFANA_PID)"
 
-# Start Chaos Mesh port-forward  
-kubectl port-forward svc/chaos-dashboard -n chaos-testing 2333:2333 > /dev/null 2>&1 &
-CHAOS_PID=$!
-echo "   Started Chaos Mesh port-forward (PID: $CHAOS_PID)"
+    kubectl port-forward svc/chaos-dashboard -n chaos-testing 2333:2333 > /dev/null 2>&1 &
+    CHAOS_PID=$!
+    echo "   Started Chaos Mesh port-forward (PID: $CHAOS_PID)"
+
+    # Linkerd port-forward (kept same behavior)
+    echo "   Starting Linkerd viz dashboard port-forward..."
+else
+    echo "   Running in container/devcontainer: skipping kubectl port-forwards. Use hostnames mapped to 127.0.0.1 (grafana.local.test, linkerd.local.test, chaos.local.test)"
+    # Still attempt Linkerd readiness and do not start port-forward; the loadbalancer will serve ingress on mapped ports.
+    echo "   Skipping Linkerd port-forward in devcontainer."
+fi
 
 # Start Linkerd viz dashboard port-forward with retry
 echo "   Starting Linkerd viz dashboard port-forward..."
@@ -297,13 +308,13 @@ echo "🏠 DASHBOARD ACCESS:"
 echo "=================================================="
 echo ""
 echo "📊 Grafana (Monitoring & Metrics):"
-echo "   🌍 URL: http://localhost:3000"
+echo "   🌍 URL: http://grafana.local.test"
 echo "   👤 Username: admin"
 echo "   🔑 Password: prom-operator"
 echo "   📈 Look for 'Chaos Engineering' dashboard"
 echo ""
 echo "💥 Chaos Mesh (Chaos Experiments):"
-echo "   🌍 URL: http://localhost:2333"
+echo "   🌍 URL: http://chaos.local.test"
 echo "   🔑 Token: $CHAOS_TOKEN"
 echo "   📝 How to login:"
 echo "      1. Open http://localhost:2333"
@@ -312,7 +323,7 @@ echo "      3. Paste the token above"
 echo "      4. Click 'Submit'"
 echo ""
 echo "🔗 Linkerd (Service Mesh):"
-echo "   🌍 URL: http://localhost:8084"
+echo "   🌍 URL: http://linkerd.local.test"
 echo "   📊 View service mesh topology, metrics, and traffic patterns"
 echo "   🔍 Monitor your backend and frontend services with Linkerd"
 echo ""
