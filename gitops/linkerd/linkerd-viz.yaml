@@ -24,3 +24,4 @@ spec:
       # allow local.test (include port suffix in regexp)
       enforcedHostRegexp: '^(localhost|127\.0\.0\.1|local\.test|web\.linkerd-viz\.svc\.cluster\.local)(:\d+)?$'
       enforcedHostRegex: '^(localhost|127\.0\.0\.1|local\.test|web\.linkerd-viz\.svc\.cluster\.local)(:\d+)?$'
+      enforcedHost: '^(localhost|127\.0\.0\.1|local\.test|web\.linkerd-viz\.svc\.cluster\.local)(:\d+)?$'
