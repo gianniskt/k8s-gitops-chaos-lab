@@ -6,6 +6,7 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
+  ingressClassName: nginx
   rules:
   - host: frontend.local.test
     http:
@@ -14,6 +15,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: frontend-service
+            name: frontend
             port:
               number: 80
