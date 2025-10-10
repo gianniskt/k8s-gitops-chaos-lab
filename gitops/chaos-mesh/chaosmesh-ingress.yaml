@@ -1,19 +1,19 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: frontend-ingress
-  namespace: app-frontend
+  name: chaos-ingress
+  namespace: chaos-testing
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-  - host: frontend.local.test
+  - host: chaos.local.test
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: frontend-service
+            name: chaos-dashboard
             port:
-              number: 80
+              number: 2333
