@@ -1,0 +1,63 @@
+{
+  "name": "GitOps Chaos Lab (k3d)",
+  "image": "ghcr.io/gianniskt/azure-gitops-image:latest",
+  "containerUser": "myuser",
+
+  // k3d needs Docker socket access
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  
+  // Docker features for k3d
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "version": "latest",
+      "enableNonRootDocker": "true",
+      "moby": "true"
+    }
+  },
+
+  // Workspace configuration
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/k8s-gitops-chaos-lab,type=bind,consistency=cached",
+  "workspaceFolder": "/workspaces/k8s-gitops-chaos-lab",
+
+  // Setup commands
+  "postCreateCommand": "sudo usermod -aG docker myuser && mkdir -p ~/.kube && echo 'export KUBECONFIG=$HOME/.kube/config' >> ~/.bashrc && echo 'export PATH=$PATH:/usr/local/bin' >> ~/.bashrc",
+
+  // VS Code customizations
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash"
+          }
+        },
+        "mcp": {
+          "servers": {
+            "flux-operator-mcp": {
+              "command": "flux-operator-mcp",
+              "args": ["serve"],
+              "env": {
+                "KUBECONFIG": "/home/myuser/.kube/config"
+              }
+            }
+          }
+        },
+        "chat.mcp.enabled": true
+      },
+      "extensions": [
+        "mhutchie.git-graph",
+        "github.vscode-github-actions",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "ms-vscode.vscode-mcp",
+        "redhat.vscode-yaml",
+        "ms-vscode.vscode-json"
+      ]
+    }
+  },
+
+  // Use myuser user
+  "remoteUser": "myuser"
+}

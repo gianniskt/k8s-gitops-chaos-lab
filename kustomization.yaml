@@ -6,9 +6,3 @@ kind: Kustomization
 resources:
   #  Deploy Flux Kustomizations with dependency chain:
   - gitops/kustomizations/
-
-# Dependency chain ensures proper installation order:
-# 1. manifests (namespaces, apps) 
-# 2. monitoring (Prometheus, ServiceMonitor CRDs)
-# 3. chaos-mesh (Chaos Mesh installation)
-# 4. chaos-experiments (chaos experiments)

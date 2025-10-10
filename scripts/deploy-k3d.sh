@@ -2,7 +2,7 @@
 set -e
 
 echo "=================================================="
-echo "🚀 GitOps Chaos Engineering - End-to-End Setup"
+echo "🚀 GitOps Chaos Engineering - End-to-End Setup (k3d)"
 echo "=================================================="
 echo ""
 
@@ -20,7 +20,7 @@ echo ""
 # Check if running in devcontainer
 if [ -n "$REMOTE_CONTAINERS" ] || [ -n "$CODESPACES" ] || [ -f /.dockerenv ]; then
     echo "🐳 Detected devcontainer/container environment"
-    echo "📦 Skipping tool installations (tools should be pre-installed)"
+    echo "📦 Using k3d instead of kind for better container compatibility"
     SKIP_INSTALLATIONS=true
 else
     echo "💻 Detected local environment"
@@ -28,286 +28,37 @@ else
 fi
 echo ""
 
-# Detect OS
-detect_os() {
-    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        echo "linux"
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "macos"
-    elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
-        echo "windows"
-    else
-        echo "unknown"
-    fi
-}
-
-OS=$(detect_os)
-echo "�️  Detected OS: $OS"
-echo ""
-
-# Install Docker
-install_docker() {
-    echo "📦 Installing Docker..."
-    case $OS in
-        "linux")
-            if command -v apt-get >/dev/null 2>&1; then
-                # Ubuntu/Debian
-                sudo apt-get update
-                sudo apt-get install -y docker.io
-                sudo systemctl start docker
-                sudo systemctl enable docker
-                sudo usermod -aG docker $USER
-                echo "⚠️  You may need to log out and back in for Docker permissions"
-            elif command -v yum >/dev/null 2>&1; then
-                # RHEL/CentOS
-                sudo yum install -y docker
-                sudo systemctl start docker
-                sudo systemctl enable docker
-                sudo usermod -aG docker $USER
-            else
-                echo "❌ Unsupported Linux distribution. Please install Docker manually:"
-                echo "   https://docs.docker.com/engine/install/"
-                exit 1
-            fi
-            ;;
-        "macos")
-            if command -v brew >/dev/null 2>&1; then
-                brew install --cask docker
-                echo "⚠️  Please start Docker Desktop after installation"
-            else
-                echo "❌ Homebrew not found. Please install Docker Desktop manually:"
-                echo "   https://docs.docker.com/desktop/mac/install/"
-                exit 1
-            fi
-            ;;
-        "windows")
-            echo "❌ Please install Docker Desktop for Windows manually:"
-            echo "   https://docs.docker.com/desktop/windows/install/"
-            echo "   After installation, restart this script."
-            exit 1
-            ;;
-        *)
-            echo "❌ Unsupported OS. Please install Docker manually:"
-            echo "   https://docs.docker.com/get-docker/"
-            exit 1
-            ;;
-    esac
-}
-
-# Install Kind
-install_kind() {
-    echo "📦 Installing Kind..."
-    case $OS in
-        "linux")
-            # For AMD64 / x86_64
-            [ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
-            # For ARM64
-            [ $(uname -m) = aarch64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-arm64
-            chmod +x ./kind
-            sudo mv ./kind /usr/local/bin/kind
-            ;;
-        "macos")
-            if command -v brew >/dev/null 2>&1; then
-                brew install kind
-            else
-                # For Intel Macs
-                [ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-darwin-amd64
-                # For M1 / ARM Macs
-                [ $(uname -m) = arm64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-darwin-arm64
-                chmod +x ./kind
-                sudo mv ./kind /usr/local/bin/kind
-            fi
-            ;;
-        "windows")
-            curl.exe -Lo kind-windows-amd64.exe https://kind.sigs.k8s.io/dl/v0.20.0/kind-windows-amd64
-            mkdir -p $HOME/bin 2>/dev/null || true
-            mv kind-windows-amd64.exe $HOME/bin/kind.exe
-            echo "⚠️  Make sure $HOME/bin is in your PATH"
-            ;;
-    esac
-}
-
-# Install kubectl
-install_kubectl() {
-    echo "📦 Installing kubectl..."
-    case $OS in
-        "linux")
-            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            chmod +x kubectl
-            sudo mv kubectl /usr/local/bin/
-            ;;
-        "macos")
-            if command -v brew >/dev/null 2>&1; then
-                brew install kubectl
-            else
-                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/darwin/amd64/kubectl"
-                chmod +x kubectl
-                sudo mv kubectl /usr/local/bin/
-            fi
-            ;;
-        "windows")
-            curl.exe -LO "https://dl.k8s.io/release/v1.28.0/bin/windows/amd64/kubectl.exe"
-            mkdir -p $HOME/bin 2>/dev/null || true
-            mv kubectl.exe $HOME/bin/
-            echo "⚠️  Make sure $HOME/bin is in your PATH"
-            ;;
-    esac
-}
-
-# Install Helm
-install_helm() {
-    echo "📦 Installing Helm..."
-    case $OS in
-        "linux"|"macos")
-            if command -v brew >/dev/null 2>&1 && [[ "$OS" == "macos" ]]; then
-                brew install helm
-            else
-                curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-            fi
-            ;;
-        "windows")
-            if command -v choco >/dev/null 2>&1; then
-                choco install kubernetes-helm
-            else
-                echo "❌ Please install Helm manually on Windows:"
-                echo "   https://helm.sh/docs/intro/install/#windows"
-                echo "   Or install Chocolatey: https://chocolatey.org/install"
-                exit 1
-            fi
-            ;;
-    esac
-}
-
-# Install Flux CLI
-install_flux() {
-    echo "📦 Installing Flux CLI..."
-    case $OS in
-        "linux")
-            curl -s https://fluxcd.io/install.sh | sudo bash
-            ;;
-        "macos")
-            if command -v brew >/dev/null 2>&1; then
-                brew install fluxcd/tap/flux
-            else
-                curl -s https://fluxcd.io/install.sh | sudo bash
-            fi
-            ;;
-        "windows")
-            if command -v choco >/dev/null 2>&1; then
-                choco install flux
-            else
-                echo "⚠️  Installing Flux CLI for Windows..."
-                curl -s https://api.github.com/repos/fluxcd/flux2/releases/latest | grep "browser_download_url.*windows_amd64" | cut -d '"' -f 4 | head -n 1 | xargs curl -L -o flux.tar.gz
-                tar -xzf flux.tar.gz
-                mkdir -p $HOME/bin 2>/dev/null || true
-                mv flux.exe $HOME/bin/ 2>/dev/null || true
-                rm -f flux.tar.gz
-                echo "⚠️  Make sure $HOME/bin is in your PATH"
-            fi
-            ;;
-    esac
-}
-
-# Install Linkerd CLI
-install_linkerd_cli() {
-    echo "📦 Installing Linkerd CLI..."
-            export LINKERD2_VERSION=edge-25.4.4
-            curl --proto '=https' --tlsv1.2 -sSfL https://run.linkerd.io/install-edge | sh
-            export PATH=$HOME/.linkerd2/bin:$PATH
-            echo "⚠️  Added $HOME/.linkerd2/bin to PATH for this session"
-}
-
-# Check and install prerequisites
-if [ "$SKIP_INSTALLATIONS" = "false" ]; then
-    echo "📋 Checking and installing prerequisites..."
-
-    # Check Docker
-    if ! command -v docker >/dev/null 2>&1; then
-        echo "❌ Docker not found. Installing..."
-        install_docker
-    else
-        echo "✅ Docker found: $(docker --version)"
-    fi
-
-    # Check Kind
-    if ! command -v kind >/dev/null 2>&1; then
-        echo "❌ Kind not found. Installing..."
-        install_kind
-    else
-        echo "✅ Kind found: $(kind version)"
-    fi
-
-    # Check kubectl
-    if ! command -v kubectl >/dev/null 2>&1; then
-        echo "❌ kubectl not found. Installing..."
-        install_kubectl
-    else
-        echo "✅ kubectl found: $(kubectl version --client --short 2>/dev/null || kubectl version --client)"
-    fi
-
-    # Check Helm
-    if ! command -v helm >/dev/null 2>&1; then
-        echo "❌ Helm not found. Installing..."
-        install_helm
-    else
-        echo "✅ Helm found: $(helm version --short)"
-    fi
-
-    # Check Flux CLI
-    if ! command -v flux >/dev/null 2>&1; then
-        echo "❌ Flux CLI not found. Installing..."
-        install_flux
-    else
-        echo "✅ Flux CLI found: $(flux version --client)"
-    fi
-
-    # Check Linkerd CLI
-    if ! command -v linkerd >/dev/null 2>&1; then
-        echo "❌ Linkerd CLI not found. Installing..."
-        install_linkerd_cli
-    else
-        echo "✅ Linkerd CLI found: $(linkerd version --client 2>/dev/null || linkerd version)"
-    fi
+# Install k3d if not present
+if ! command -v k3d >/dev/null 2>&1; then
+    echo "📦 Installing k3d..."
+    curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+    echo "✅ k3d installed"
 else
-    echo "📋 Verifying pre-installed tools in container..."
-    
-    # Verify required tools are available
-    for tool in docker kind kubectl helm flux; do
-        if command -v $tool >/dev/null 2>&1; then
-            echo "✅ $tool found: $($tool version --client 2>/dev/null || $tool --version 2>/dev/null || $tool version 2>/dev/null || echo "installed")"
-        else
-            echo "❌ $tool not found. Please check the devcontainer setup."
-            exit 1
-        fi
-    done
-    
-    # Check if linkerd is available (optional)
-    if command -v linkerd >/dev/null 2>&1; then
-        echo "✅ linkerd found: $(linkerd version --client 2>/dev/null || linkerd version 2>/dev/null || echo "installed")"
-    else
-        echo "⚠️  linkerd CLI not found - will install during deployment"
-    fi
+    echo "✅ k3d found: $(k3d version)"
 fi
-
-echo ""
-echo "🎉 All prerequisites are ready!"
-echo ""
 
 # Verify Docker is running
 if ! docker info >/dev/null 2>&1; then
     echo "❌ Docker is not running. Please start Docker and try again."
-    echo "   - Linux: sudo systemctl start docker"
-    echo "   - macOS/Windows: Start Docker Desktop"
     exit 1
 fi
 
-# Step 1: Create Kind cluster
-echo "🔧 Step 1/7: Creating Kind cluster..."
-if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
+# Step 1: Create k3d cluster
+echo "🔧 Step 1/7: Creating k3d cluster..."
+if k3d cluster list 2>/dev/null | grep -q "^${CLUSTER_NAME}"; then
     echo "⚠️  Cluster '${CLUSTER_NAME}' already exists. Deleting..."
-    kind delete cluster --name ${CLUSTER_NAME}
+    k3d cluster delete ${CLUSTER_NAME}
 fi
-kind create cluster --name ${CLUSTER_NAME}
+
+k3d cluster create ${CLUSTER_NAME} \
+    --api-port 6550 \
+    --port "8080:80@loadbalancer" \
+    --port "8443:443@loadbalancer" \
+    --k3s-arg "--disable=traefik@server:0" \
+    --wait \
+    --timeout 10m
+
+kubectl config use-context k3d-${CLUSTER_NAME}
 echo "✅ Cluster created"
 echo ""
 
@@ -318,10 +69,10 @@ docker build -t frontend:local ./app/frontend
 echo "✅ Images built"
 echo ""
 
-# Step 3: Load images into Kind
-echo "📦 Step 3/7: Loading images into Kind cluster..."
-kind load docker-image backend:local --name ${CLUSTER_NAME}
-kind load docker-image frontend:local --name ${CLUSTER_NAME}
+# Step 3: Load images into k3d
+echo "📦 Step 3/7: Loading images into k3d cluster..."
+k3d image import backend:local -c ${CLUSTER_NAME}
+k3d image import frontend:local -c ${CLUSTER_NAME}
 echo "✅ Images loaded"
 echo ""
 
@@ -542,7 +293,7 @@ echo ""
 echo "📊 Cluster Status:"
 kubectl get pods -A | grep -E "NAMESPACE|app-backend|app-frontend|chaos-testing|monitoring|linkerd" || true
 echo ""
-echo "� DASHBOARD ACCESS:"
+echo "🏠 DASHBOARD ACCESS:"
 echo "=================================================="
 echo ""
 echo "📊 Grafana (Monitoring & Metrics):"
@@ -580,6 +331,11 @@ echo "   • Fix Linkerd dashboard: ./fix-linkerd-dashboard.sh"
 echo ""
 echo "⚠️  To stop port-forwards later:"
 echo "   kill $GRAFANA_PID $CHAOS_PID $LINKERD_PID"
+echo ""
+echo "🛠️  k3d Commands:"
+echo "   • Delete cluster: k3d cluster delete ${CLUSTER_NAME}"
+echo "   • Restart cluster: k3d cluster stop ${CLUSTER_NAME} && k3d cluster start ${CLUSTER_NAME}"
+echo "   • Import new images: k3d image import <image:tag> -c ${CLUSTER_NAME}"
 echo ""
 echo "🔧 TROUBLESHOOTING:"
 echo "=================================================="

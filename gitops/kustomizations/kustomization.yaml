@@ -21,6 +21,9 @@ resources:
   # Linkerd service mesh installation
   - linkerd-kustomization.yaml
 
+    # Ingress nginx
+  - ingress-nginx-kustomization.yaml
+
   # Base manifests (namespaces, applications) - depends on linkerd
   - manifests-kustomization.yaml
 

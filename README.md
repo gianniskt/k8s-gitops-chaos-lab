@@ -24,6 +24,8 @@ Kubernetes GitOps Homelab with Flux, Linkerd, Cert-Manager, Chaos Mesh & Prometh
 
 ## Quick Start
 
+### Option 1: Local Installation (Auto-Setup)
+
 ```bash
 # Clone and deploy everything (auto-installs prerequisites)
 git clone https://github.com/gianniskt/k8s-gitops-chaos-lab.git
@@ -32,16 +34,39 @@ chmod +x scripts/deploy.sh
 ./scripts/deploy.sh
 ```
 
-**No manual installation needed!** The script automatically detects and installs:
-- **Docker** (Linux: apt/yum, macOS: Homebrew, Windows: manual prompt)
-- **Kind** (Kubernetes in Docker)
+### Option 2: DevContainer (Recommended for Windows/Complex Setups)
+
+For a pre-configured environment with all tools ready:
+
+```bash
+# 1. Build the base devcontainer image
+cd c:/path/to/azure-gitops-image
+docker build -t gitops-custom:latest .
+
+# 2. Open k8s-gitops-chaos-lab in VS Code
+# Press F1 → "Dev Containers: Reopen in Container"
+
+# 3. Run k3d deployment inside devcontainer (recommended)
+./scripts/deploy-k3d.sh
+
+# OR run K3s deployment (alternative)
+./scripts/deploy-k3s.sh
+
+# OR run Kind deployment (requires Docker-in-Docker)
+./scripts/deploy.sh
+```
+
+📖 **Detailed DevContainer Instructions**: See [DEVCONTAINER_INTEGRATION.md](DEVCONTAINER_INTEGRATION.md)
+
+### What Gets Installed
+- **k3d** (K3s in Docker) OR **K3s** (Lightweight Kubernetes) OR **Kind** (Kubernetes in Docker)
 - **kubectl** (Kubernetes CLI)
 - **Helm** (Package manager)
 - **Flux CLI** (GitOps status and management)
 
-The script will:
-- Create Kind cluster `gitops-chaos`
-- Build and load Docker images locally
+The k3d script will:
+- Create k3d cluster (K3s in Docker containers)
+- Build and load container images with Docker
 - Install FluxCD Operator
 - Deploy GitOps components (Flux, cert-manager, Linkerd service mesh, monitoring stack)
 - Deploy applications (backend, frontend microservices)

@@ -8,3 +8,4 @@ resources:
   - backend.yaml
   - frontend.yaml
   - servicemonitor-apps.yaml
+  - ingress-frontend.yaml
