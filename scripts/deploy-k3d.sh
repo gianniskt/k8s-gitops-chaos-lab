@@ -33,7 +33,9 @@ echo ""
 # (for example: Windows host vs devcontainer network namespaces). Users can
 # still override by exporting FORCE_PORT_FORWARDS=0 before running the script.
 if [ "$SKIP_INSTALLATIONS" = "true" ] ; then
-    FORCE_PORT_FORWARDS=1
+    # Running inside a devcontainer. Using k3d loadbalancer + nip.io for hostnames.
+    # Port-forwards are not needed when using nip.io with the k3d loadbalancer publishing port 80.
+    FORCE_PORT_FORWARDS=0
 fi
 
 # Install k3d if not present
@@ -261,108 +263,8 @@ kubectl wait --for=condition=Ready pod -l linkerd.io/control-plane-ns=linkerd -n
 echo "✅ Deployment complete!"
 echo ""
 
-# Port-forwards are optional. The commands below are preserved and commented out.
-# If you want to enable them, remove the leading '# ' from the kubectl/ pkill commands.
-
-# START PORT-FORWARDS (CONDITIONAL)
-echo "🌐 Preparing dashboard access: will only start port-forwards for ports NOT already published by k3d loadbalancer"
-
-# Helper: check if a host port is published by the k3d server loadbalancer
-is_port_published() {
-    local port=$1
-    # k3d names the loadbalancer container k3d-<cluster>-serverlb
-    lb_container="k3d-${CLUSTER_NAME}-serverlb"
-    if docker ps --format '{{.Names}}' | grep -q "^${lb_container}$"; then
-        if docker port "${lb_container}" "${port}" >/dev/null 2>&1; then
-            return 0
-        fi
-    fi
-    return 1
-}
-
-# Kill any existing port-forwards on these ports (defensive)
-pkill -f "port-forward.*3000" 2>/dev/null || true
-pkill -f "port-forward.*2333" 2>/dev/null || true
-pkill -f "port-forward.*8084" 2>/dev/null || true
-
-# You can force port-forwards even if k3d loadbalancer publishes the host ports by
-# setting environment variable FORCE_PORT_FORWARDS=1 before running the script.
-# Grafana: only port-forward if host port 3000 is NOT published by the loadbalancer
-if [ -z "$FORCE_PORT_FORWARDS" ] && is_port_published 3000; then
-    echo "   Host port 3000 is already published by k3d loadbalancer — skipping Grafana port-forward"
-    GRAFANA_PID=0
-else
-    echo "   Starting Grafana port-forward (local:3000 -> svc/kube-prometheus-stack-grafana:80)"
-    # Detach using setsid so the forward survives script exit; log to /tmp
-    LOG=/tmp/grafana-portforward.log
-    PIDFILE=/tmp/grafana-portforward.pid
-    setsid sh -c "kubectl port-forward --address 0.0.0.0 svc/kube-prometheus-stack-grafana -n monitoring 3000:80 >\"$LOG\" 2>&1 < /dev/null" &
-    GRAFANA_PID=$!
-    echo $GRAFANA_PID > "$PIDFILE" || true
-    echo "   Started Grafana port-forward (PID: $GRAFANA_PID) -> log: $LOG"
-fi
-
-# Chaos Mesh: only port-forward if host port 2333 is NOT published by the loadbalancer
-if [ -z "$FORCE_PORT_FORWARDS" ] && is_port_published 2333; then
-    echo "   Host port 2333 is already published by k3d loadbalancer — skipping Chaos Mesh port-forward"
-    CHAOS_PID=0
-else
-    echo "   Starting Chaos Mesh port-forward (local:2333 -> svc/chaos-dashboard:2333)"
-    LOG=/tmp/chaos-portforward.log
-    PIDFILE=/tmp/chaos-portforward.pid
-    setsid sh -c "kubectl port-forward --address 0.0.0.0 svc/chaos-dashboard -n chaos-testing 2333:2333 >\"$LOG\" 2>&1 < /dev/null" &
-    CHAOS_PID=$!
-    echo $CHAOS_PID > "$PIDFILE" || true
-    echo "   Started Chaos Mesh port-forward (PID: $CHAOS_PID) -> log: $LOG"
-fi
-
-# Linkerd viz: only port-forward if host port 8084 is NOT published by the loadbalancer
-echo "   Preparing Linkerd viz dashboard access..."
-for attempt in 1 2 3; do
-    echo "   Attempt $attempt: Waiting for Linkerd viz service to be ready..."
-    echo "   Waiting specifically for Prometheus pod (takes longer to start)..."
-    kubectl wait --for=condition=Ready pod -l component=prometheus -n linkerd-viz --timeout=300s 2>/dev/null || echo "⚠️  Prometheus pod not ready yet"
-    echo "   Prometheus ready! Waiting for web component..."
-    kubectl wait --for=condition=Ready pod -l component=web -n linkerd-viz --timeout=60s 2>/dev/null || echo "⚠️  Web pod not ready yet"
-
-    if [ -z "$FORCE_PORT_FORWARDS" ] && is_port_published 8084; then
-        echo "   Host port 8084 is already published by k3d loadbalancer — skipping Linkerd viz port-forward"
-        LINKERD_PID=0
-        break
-    fi
-
-    kubectl port-forward --address 0.0.0.0 svc/web -n linkerd-viz 8084:8084 > /dev/null 2>&1 &
-    LOG=/tmp/linkerd-portforward.log
-    PIDFILE=/tmp/linkerd-portforward.pid
-    setsid sh -c "kubectl port-forward --address 0.0.0.0 svc/web -n linkerd-viz 8084:8084 >\"$LOG\" 2>&1 < /dev/null" &
-    LINKERD_PID=$!
-    
-    # Test if the port-forward is working and dashboard is responding
-    sleep 5
-    if curl -s http://localhost:8084/api/version >/dev/null 2>&1; then
-        echo "   ✅ Linkerd viz dashboard port-forward successful (PID: $LINKERD_PID)"
-        break
-    else
-        echo "   ⚠️  Linkerd dashboard not responding, killing port-forward..."
-        kill $LINKERD_PID 2>/dev/null || true
-        
-        if [ $attempt -eq 2 ]; then
-            echo "   🔧 Attempting to restart Linkerd viz deployments..."
-            kubectl rollout restart deployment -n linkerd-viz 2>/dev/null || echo "⚠️  Failed to restart viz deployments"
-            kubectl wait --for=condition=Available deployment/web -n linkerd-viz --timeout=300s 2>/dev/null || echo "⚠️  Web deployment may still be restarting"
-            kubectl wait --for=condition=Available deployment/metrics-api -n linkerd-viz --timeout=300s 2>/dev/null || echo "⚠️  Metrics API deployment may still be restarting"
-            kubectl wait --for=condition=Available deployment/prometheus -n linkerd-viz --timeout=300s 2>/dev/null || echo "⚠️  Prometheus deployment may still be restarting"
-            sleep 15
-        elif [ $attempt -eq 3 ]; then
-            echo "   ❌ Failed to start Linkerd dashboard after 3 attempts"
-            echo "   🔧 Manual fix: Run ./fix-linkerd-dashboard.sh"
-        fi
-        sleep 5
-    fi
-done
-
-# Wait a moment for port-forwards to establish
-sleep 3
+# No port-forwards needed: using nip.io hostnames mapped to the k3d loadbalancer IP (127.0.0.1 via nip.io)
+# If you want explicit port-forwarding you can enable it manually, but it's not required for nip.io usage.
 
 # Create chaos dashboard token
 echo "🔑 Creating Chaos Mesh dashboard token..."
@@ -381,22 +283,22 @@ echo "🏠 DASHBOARD ACCESS:"
 echo "=================================================="
 echo ""
 echo "📊 Grafana (Monitoring & Metrics):"
-echo "   🌍 URL: http://grafana.local.test"
+echo "   🌍 URL: http://grafana.127.0.0.1.nip.io"
 echo "   👤 Username: admin"
 echo "   🔑 Password: prom-operator"
 echo "   📈 Look for 'Chaos Engineering' dashboard"
 echo ""
 echo "💥 Chaos Mesh (Chaos Experiments):"
-echo "   🌍 URL: http://chaos.local.test"
+echo "   🌍 URL: http://chaos.127.0.0.1.nip.io"
 echo "   🔑 Token: $CHAOS_TOKEN"
 echo "   📝 How to login:"
-echo "      1. Open http://chaos.local.test"
+echo "      1. Open http://chaos.127.0.0.1.nip.io"
 echo "      2. Click 'Token' authentication"
 echo "      3. Paste the token above"
 echo "      4. Click 'Submit'"
 echo ""
 echo "🔗 Linkerd (Service Mesh):"
-echo "   🌍 URL: http://linkerd.local.test"
+echo "   🌍 URL: http://linkerd.127.0.0.1.nip.io"
 echo "   📊 View service mesh topology, metrics, and traffic patterns"
 echo "   🔍 Monitor your backend and frontend services with Linkerd"
 echo ""
