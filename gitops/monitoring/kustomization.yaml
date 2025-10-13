@@ -7,4 +7,3 @@ resources:
   - monitoring-stack.yaml
   - grafana-ingress.yaml
   - dashboards/chaos-dashboard.yaml
-  - grafana-ingress-localhost.yaml
