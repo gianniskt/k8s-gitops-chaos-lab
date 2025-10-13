@@ -9,7 +9,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: linkerd.local.test
+  - host: linkerd.127.0.0.1.nip.io
     http:
       paths:
       - path: /

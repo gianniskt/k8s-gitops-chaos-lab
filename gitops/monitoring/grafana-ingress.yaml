@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: grafana.local.test
+  - host: grafana.127.0.0.1.nip.io
     http:
       paths:
       - path: /
@@ -17,4 +17,4 @@ spec:
           service:
             name: kube-prometheus-stack-grafana
             port:
-              number: 80
+              number: 3000
