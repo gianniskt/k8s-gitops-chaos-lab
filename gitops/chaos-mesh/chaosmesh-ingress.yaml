@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: chaos.local.test
+  - host: chaos.127.0.0.1.nip.io
     http:
       paths:
       - path: /
