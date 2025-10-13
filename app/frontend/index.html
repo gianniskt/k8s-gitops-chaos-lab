@@ -10,7 +10,7 @@
 
     <script>
         function fetchMessage() {
-            // Use same-origin path so browser requests go through the ingress when accessed via frontend.local.test
+            // Use same-origin path so browser requests go through the ingress when accessed via frontend.127.0.0.1.nip.io
             fetch('/api/message')
                 .then(response => {
                     if (!response.ok) {
