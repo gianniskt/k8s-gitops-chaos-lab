@@ -8,6 +8,10 @@ metadata:
     nginx.ingress.kubernetes.io/upstream-vhost: "web.linkerd-viz.svc.cluster.local"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - linkerd.127.0.0.1.nip.io
+    secretName: linkerd-tls
   rules:
   - host: linkerd.127.0.0.1.nip.io
     http:
