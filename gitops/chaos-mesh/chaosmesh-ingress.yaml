@@ -7,10 +7,6 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   ingressClassName: nginx
-  tls:
-  - hosts:
-    - chaos.127.0.0.1.nip.io
-    secretName: chaos-tls
   rules:
   - host: chaos.127.0.0.1.nip.io
     http:
