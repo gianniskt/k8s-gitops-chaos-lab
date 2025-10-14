@@ -4,3 +4,11 @@ kind: Kustomization
 resources:
   - cert-manager-repo.yaml
   - cert-manager.yaml
+  - 00-clusterissuer-selfsigned.yaml
+  - 01-ca-certificate.yaml
+  - 02-clusterissuer-ca.yaml
+  - certificates/backend-cert.yaml
+  - certificates/chaos-cert.yaml
+  - certificates/frontend-cert.yaml
+  - certificates/grafana-cert.yaml
+  - certificates/linkerd-cert.yaml

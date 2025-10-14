@@ -7,6 +7,10 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - grafana.127.0.0.1.nip.io
+    secretName: grafana-tls
   rules:
   - host: grafana.127.0.0.1.nip.io
     http:
