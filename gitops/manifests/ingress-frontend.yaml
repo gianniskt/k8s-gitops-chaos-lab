@@ -7,10 +7,6 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   ingressClassName: nginx
-  tls:
-  - hosts:
-    - frontend.127.0.0.1.nip.io
-    secretName: frontend-tls
   rules:
   - host: frontend.127.0.0.1.nip.io
     http:
