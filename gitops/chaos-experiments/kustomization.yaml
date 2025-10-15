@@ -19,6 +19,7 @@ resources:
   - chaos-servicemonitor.yaml
   - servicemonitor-flux.yaml
   - podmonitor-flux.yaml
+  - node-cpu-stress-schedule.yaml
 
 # ✅ ESSENTIAL EXPERIMENTS:
 # - pod-kill-simple (PodChaos with pod-kill action)

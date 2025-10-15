@@ -1,0 +1,20 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: node-cpu-stress-schedule
+  namespace: chaos-testing
+spec:
+  schedule: "@every 10m"
+  type: StressChaos
+  stressChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        app: backend
+    mode: one
+    stressors:
+      cpu:
+        workers: 1
+        load: 80
+    duration: "90s"

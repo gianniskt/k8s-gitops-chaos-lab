@@ -14,9 +14,9 @@ spec:
   - type: prometheus
     metadata:
       serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
-      # If number of chaos experiments in last 5 minutes > 0 scale up
-      query: 'increase(chaos_controller_manager_experiments_total{namespace="chaos-testing"}[5m])'
-      # Use a small positive threshold so a single experiment (increase >= 1)
-      # will evaluate as greater than threshold and activate scaling.
+      # Trigger on node CPU usage (fraction 0..1). This query returns average
+      # node CPU usage across instances using node_exporter metrics.
+      # KEDA will activate when this value > threshold (0.5 = 50%).
+      query: 'avg(1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])))'
       threshold: '0.5'
     # No authenticationRef required for in-cluster Prometheus
