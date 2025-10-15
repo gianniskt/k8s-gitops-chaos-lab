@@ -19,4 +19,4 @@ spec:
   valuesFrom:
     - kind: ConfigMap
       name: chaos-mesh-values
-      key: values.yaml
+      valuesKey: values.yaml
