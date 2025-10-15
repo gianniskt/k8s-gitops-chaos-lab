@@ -169,31 +169,31 @@ if ! wait_for_service_endpoints ingress-nginx ingress-nginx-controller-admission
     exit 1
 fi
 
-echo "    - 2/9: Reconciling monitoring kustomization..."
+echo "    - 2/12: Reconciling monitoring kustomization..."
 flux reconcile kustomization monitoring 2>/dev/null || echo "⚠️  monitoring reconciliation failed"
 sleep 5
 
-echo "    - 3/9: Reconciling reloader kustomization..."
+echo "    - 3/12: Reconciling reloader kustomization..."
 flux reconcile kustomization reloader 2>/dev/null || echo "⚠️  reloader reconciliation failed"
 sleep 10
 
-echo "    - 4/9: Reconciling cert-manager kustomization..."
+echo "    - 4/12: Reconciling cert-manager kustomization..."
 flux reconcile kustomization cert-manager 2>/dev/null || echo "⚠️  cert-manager reconciliation failed"
 sleep 10
 
-echo "    - 5/9: Reconciling cert-manager helmrelease..."
+echo "    - 5/12: Reconciling cert-manager helmrelease..."
 flux reconcile helmrelease cert-manager -n cert-manager 2>/dev/null || echo "⚠️  cert-manager reconciliation failed"
 sleep 20
 
-echo "    - 6/9: Reconciling linkerd-certificates kustomization..."
+echo "    - 6/12: Reconciling linkerd-certificates kustomization..."
 flux reconcile kustomization linkerd-certificates 2>/dev/null || echo "⚠️  linkerd-certificates reconciliation failed"
 sleep 10
 
-echo "    - 7/9: Reconciling linkerd kustomization..."
+echo "    - 7/12: Reconciling linkerd kustomization..."
 flux reconcile kustomization linkerd 2>/dev/null || echo "⚠️  linkerd reconciliation failed"
 sleep 10
 
-echo "    - 7.5/9: Waiting for trust anchor sync and restarting Linkerd control plane..."
+echo "    - 7.5/12: Waiting for trust anchor sync and restarting Linkerd control plane..."
 # Wait for the trust sync job to complete
 kubectl wait --for=condition=Complete job/linkerd-trust-sync-initial -n linkerd --timeout=120s 2>/dev/null || echo "⚠️  Trust sync job may still be running"
 # Restart Linkerd control plane to pick up updated trust anchors
@@ -203,18 +203,18 @@ kubectl wait --for=condition=Available deployment/linkerd-destination -n linkerd
 kubectl wait --for=condition=Available deployment/linkerd-identity -n linkerd --timeout=300s 2>/dev/null || echo "⚠️  Linkerd identity may still be restarting"
 kubectl wait --for=condition=Available deployment/linkerd-proxy-injector -n linkerd --timeout=300s 2>/dev/null || echo "⚠️  Linkerd proxy-injector may still be restarting"
 
-echo "    - 8/9: Reconciling manifests kustomization..."
+echo "    - 8/12: Reconciling manifests kustomization..."
 flux reconcile kustomization manifests 2>/dev/null || echo "⚠️  manifests reconciliation failed"
 sleep 5
 
-echo "    - 9/9: Reconciling chaos-mesh kustomization..."
+echo "    - 9/12: Reconciling chaos-mesh kustomization..."
 flux reconcile kustomization chaos-mesh 2>/dev/null || echo "⚠️  chaos-mesh reconciliation failed"
 sleep 5
 
-echo "    - 10/9: Reconciling chaos-experiments kustomization..."
+echo "    - 10/12: Reconciling chaos-experiments kustomization..."
 flux reconcile kustomization chaos-experiments 2>/dev/null || echo "⚠️  chaos-experiments reconciliation failed"
 sleep 5
-echo "    - 11/9: Reconciling KEDA kustomizations and HelmRelease..."
+echo "    - 11/12: Reconciling KEDA kustomizations and HelmRelease..."
 flux reconcile kustomization keda -n flux-system --with-source 2>/dev/null || echo "⚠️  keda (helmrepo/helmrelease) reconciliation failed"
 sleep 5
 
@@ -231,7 +231,7 @@ sleep 20
 echo "    - Waiting for KEDA pods to be ready..."
 kubectl -n keda wait --for=condition=Ready pod -l app.kubernetes.io/name=keda-operator --timeout=180s 2>/dev/null || echo "⚠️  KEDA pods may still be starting"
 
-echo "    - 12/9: Restarting all Linkerd viz deployments..."
+echo "    - 12/12: Restarting all Linkerd viz deployments..."
 kubectl rollout restart deployment -n linkerd-viz 2>/dev/null || echo "⚠️  Failed to restart some Linkerd viz deployments"
 # Wait for viz deployments to be ready
 kubectl wait --for=condition=Available deployment/web -n linkerd-viz --timeout=120s 2>/dev/null || echo "⚠️  Web deployment may still be restarting"
@@ -278,6 +278,17 @@ kubectl wait --for=condition=Ready pod -l app.kubernetes.io/instance=chaos-mesh 
 
 echo "  Waiting for linkerd pods..."
 kubectl wait --for=condition=Ready pod -l linkerd.io/control-plane-ns=linkerd -n linkerd --timeout=300s 2>/dev/null || echo "⚠️  Linkerd pods still starting..."
+
+# Ensure Chaos Mesh workloads pick up any rendered/merged value changes by restarting
+# the controller and dashboard Deployments and recreating daemon pods. This mirrors
+# what we do manually during troubleshooting so the cluster state matches the
+# GitOps-applied manifests without requiring extra manual steps.
+echo "  Restarting Chaos Mesh controller, dashboard and recreating daemon pods..."
+kubectl -n chaos-testing rollout restart deployment chaos-controller-manager 2>/dev/null || echo "⚠️  Failed to restart chaos-controller-manager"
+kubectl -n chaos-testing rollout restart deployment chaos-dashboard 2>/dev/null || echo "⚠️  Failed to restart chaos-dashboard"
+# Delete daemon pods so the DaemonSet recreates them (pick up hostPath mounts/args)
+kubectl -n chaos-testing delete pod -l app.kubernetes.io/component=chaos-daemon --ignore-not-found 2>/dev/null || echo "⚠️  Failed to delete chaos-daemon pods"
+sleep 5
 
 echo "✅ Deployment complete!"
 echo ""
