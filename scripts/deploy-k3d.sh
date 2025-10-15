@@ -219,7 +219,7 @@ flux reconcile kustomization keda -n flux-system --with-source 2>/dev/null || ec
 sleep 5
 
 echo "    - Reconciling KEDA kustomization that includes ScaledObjects..."
-flux reconcile kustomization keda-kustomization --with-source 2>/dev/null || echo "⚠️  keda-scaledobjects reconciliation failed"
+flux reconcile kustomization kedascaledobjects --with-source 2>/dev/null || echo "⚠️  keda-scaledobjects reconciliation failed"
 sleep 10
 
 # Reconcile the HelmRelease for keda to ensure the operator is installed
@@ -248,7 +248,7 @@ kubectl wait --for=condition=Ready kustomization/cert-manager -n flux-system --t
 kubectl wait --for=condition=Ready kustomization/linkerd-certificates -n flux-system --timeout=300s 2>/dev/null || echo "⚠️  Linkerd certificates may still be applying..."
 kubectl wait --for=condition=Ready kustomization/linkerd -n flux-system --timeout=300s 2>/dev/null || echo "⚠️  Linkerd may still be applying..."
 kubectl wait --for=condition=Ready kustomization/keda -n flux-system --timeout=300s 2>/dev/null || echo "⚠️  KEDA (helmrepo/helmrelease) may still be applying..."
-kubectl wait --for=condition=Ready kustomization/keda-kustomization -n flux-system --timeout=300s 2>/dev/null || echo "⚠️  KEDA ScaledObjects may still be applying..."
+kubectl wait --for=condition=Ready kustomization/kedascaledobjects -n flux-system --timeout=300s 2>/dev/null || echo "⚠️  KEDA ScaledObjects may still be applying..."
 kubectl wait --for=condition=Ready helmrelease/keda -n keda --timeout=300s 2>/dev/null || echo "⚠️  KEDA helmrelease may still be applying..."
 echo ""
 
