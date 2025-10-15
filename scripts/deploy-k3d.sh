@@ -212,6 +212,28 @@ echo "    - 9/12: Reconciling chaos-mesh kustomization..."
 flux reconcile kustomization chaos-mesh 2>/dev/null || echo "⚠️  chaos-mesh reconciliation failed"
 sleep 5
 
+echo "    - 9.1/12: Applying Chaos Mesh values ConfigMap from repo (idempotent)"
+# Apply the values ConfigMap that HelmRelease references via valuesFrom so the
+# Helm controller can read environment-specific values from Git.
+kubectl apply -f gitops/chaos-mesh/chaos-mesh-values.yaml 2>/dev/null || echo "⚠️  Failed to apply chaos-mesh-values ConfigMap"
+sleep 2
+
+echo "    - 9.2/12: Forcing HelmRelease reconcile for chaos-mesh (so Helm controller re-renders with the applied ConfigMap)"
+# Prefer `flux` if present; fall back to annotating the HelmRelease to force a reconcile.
+if command -v flux >/dev/null 2>&1; then
+    flux reconcile helmrelease chaos-mesh -n chaos-testing --with-source 2>/dev/null || echo "⚠️  flux helmrelease reconcile failed"
+else
+    kubectl -n chaos-testing annotate helmrelease chaos-mesh reconcile.fluxcd.io/forceAt="$(date -Iseconds)" --overwrite 2>/dev/null || echo "⚠️  fallback annotate to force HelmRelease reconcile failed"
+fi
+sleep 3
+
+echo "    - 9.3/12: Restarting Chaos Mesh controller & dashboard and recreating daemon pods (pick up mounted hostPath/socket changes)"
+kubectl -n chaos-testing rollout restart deployment chaos-controller-manager 2>/dev/null || echo "⚠️  Failed to restart chaos-controller-manager"
+kubectl -n chaos-testing rollout restart deployment chaos-dashboard 2>/dev/null || echo "⚠️  Failed to restart chaos-dashboard"
+# Delete daemon pods so the DaemonSet recreates them and picks up new hostPath mounts/args
+kubectl -n chaos-testing delete pod -l app.kubernetes.io/component=chaos-daemon --ignore-not-found 2>/dev/null || echo "⚠️  Failed to delete chaos-daemon pods"
+sleep 5
+
 echo "    - 10/12: Reconciling chaos-experiments kustomization..."
 flux reconcile kustomization chaos-experiments 2>/dev/null || echo "⚠️  chaos-experiments reconciliation failed"
 sleep 5
