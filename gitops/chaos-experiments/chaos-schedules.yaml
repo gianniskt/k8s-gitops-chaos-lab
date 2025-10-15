@@ -1,12 +1,17 @@
 ---
-# Schedule for Backend Pod Kill Chaos - Every 2 minutes
+# Consolidated Sustainable Chaos Experiments for Observable Impact
+# These experiments are spaced to avoid overlap and provide sustained observable metrics
+
+# Schedule 1: Backend Pod Kill (Every 20 minutes) - Tests resilience and triggers scaling
 apiVersion: chaos-mesh.org/v1alpha1
 kind: Schedule
 metadata:
-  name: backend-pod-kill-schedule
+  name: backend-resilience-test
   namespace: chaos-testing
+  labels:
+    purpose: "resilience-testing"
 spec:
-  schedule: "@every 2m"  # Every 2 minutes
+  schedule: "*/20 * * * *"  # Every 20 minutes
   type: PodChaos
   podChaos:
     selector:
@@ -19,14 +24,91 @@ spec:
     duration: "0s"
 
 ---
-# Schedule for Flux Controller Restart - Every 2 minutes
+# Schedule 2: Network Latency (Every 15 minutes, offset +5) - Creates observable latency spikes
 apiVersion: chaos-mesh.org/v1alpha1
 kind: Schedule
 metadata:
-  name: flux-controller-restart-schedule
+  name: backend-latency-test
   namespace: chaos-testing
+  labels:
+    purpose: "latency-testing"
 spec:
-  schedule: "@every 2m"  # Every 2 minutes
+  schedule: "5,20,35,50 * * * *"  # Every 15 minutes, offset by 5
+  type: NetworkChaos
+  networkChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: one
+    action: delay
+    delay:
+      latency: "400ms"
+      correlation: "100"
+      jitter: "200ms"
+    duration: "3m"  # Long enough to be observed
+    direction: to
+
+---
+# Schedule 3: Memory Stress (Every 25 minutes, offset +10) - Tests memory pressure
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: backend-memory-stress
+  namespace: chaos-testing
+  labels:
+    purpose: "memory-testing"
+spec:
+  schedule: "10,35 * * * *"  # Every 25 minutes, offset by 10
+  type: StressChaos
+  stressChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: one
+    stressors:
+      memory:
+        workers: 1
+        size: "128Mi"  # Stress memory to trigger resource pressure
+    duration: "4m"  # Long enough for monitoring
+
+---
+# Schedule 4: Multi-Pod Failure (Every 30 minutes, offset +15) - Tests load balancing
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: backend-loadbalance-test
+  namespace: chaos-testing
+  labels:
+    purpose: "loadbalancing-testing"
+spec:
+  schedule: "15,45 * * * *"  # Every 30 minutes, offset by 15
+  type: PodChaos
+  podChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: fixed-percent
+    value: "50"  # Kill 50% of backend pods
+    action: pod-failure
+    duration: "2m"  # Sustained impact
+
+---
+# Schedule 5: Flux Controller Test (Every 45 minutes) - Tests GitOps resilience
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: flux-resilience-test
+  namespace: chaos-testing
+  labels:
+    purpose: "gitops-testing"
+spec:
+  schedule: "25 * * * *"  # Every hour at 25 minutes
   type: PodChaos
   podChaos:
     selector:
@@ -37,25 +119,3 @@ spec:
     mode: one
     action: pod-kill
     duration: "0s"
-
----
-# Schedule for DNS Chaos - Every 2 minutes
-apiVersion: chaos-mesh.org/v1alpha1
-kind: Schedule
-metadata:
-  name: dns-chaos-schedule
-  namespace: chaos-testing
-spec:
-  schedule: "@every 2m"  # Every 2 minutes
-  type: DNSChaos
-  dnsChaos:
-    selector:
-      namespaces:
-        - app-backend
-      labelSelectors:
-        "app": "backend"
-    mode: one
-    action: error
-    patterns:
-      - "google.com"
-    duration: "30s"

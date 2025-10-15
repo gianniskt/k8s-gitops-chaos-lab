@@ -1,25 +1,18 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# ESSENTIAL chaos experiments for Kind
-# Core demonstrations of chaos engineering + automated schedules + Linkerd metrics testing
+# ESSENTIAL chaos experiments for sustainable observable impact
+# Spaced experiments that trigger KEDA scaling and show dashboard metrics
 resources:
-  # Essential chaos experiments - pod-kill + dns-chaos + flux-restart
-  - minimal-working-chaos.yaml
-  
-  # Automated schedules for continuous chaos testing
+  # Consolidated sustainable chaos schedules (includes all core experiments)
   - chaos-schedules.yaml
   
-  # Linkerd Service Mesh Metrics Testing
-  - linkerd-metrics-chaos.yaml
-  - linkerd-metrics-schedules.yaml
-  - linkerd-traffic-chaos.yaml
+  # Additional CPU stress testing for KEDA scaling
+  - node-cpu-stress-schedule.yaml
   
   # Monitoring integration
   - chaos-servicemonitor.yaml
   - servicemonitor-flux.yaml
-  - podmonitor-flux.yaml
-  - node-cpu-stress-schedule.yaml
 
 # ✅ ESSENTIAL EXPERIMENTS:
 # - pod-kill-simple (PodChaos with pod-kill action)

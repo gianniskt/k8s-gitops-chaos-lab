@@ -4,7 +4,7 @@ metadata:
   name: node-cpu-stress-schedule
   namespace: chaos-testing
 spec:
-  schedule: "@every 30m"
+  schedule: "@every 10m"
   type: StressChaos
   stressChaos:
     selector:
