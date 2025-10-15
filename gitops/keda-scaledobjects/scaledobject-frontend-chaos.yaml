@@ -7,14 +7,15 @@ spec:
   scaleTargetRef:
     name: frontend
   minReplicaCount: 1
-  maxReplicaCount: 5
+  maxReplicaCount: 2
   cooldownPeriod: 300
-  pollingInterval: 30
+  pollingInterval: 15
   triggers:
   - type: prometheus
     metadata:
       serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
       # Scale frontend if chaos experiments increased in the last 5 minutes
       query: 'increase(chaos_controller_manager_experiments_total{namespace="chaos-testing"}[5m])'
-      threshold: '1'
+      # Small positive threshold so a single experiment will trigger scaling
+      threshold: '0.5'
     # No authenticationRef required for in-cluster Prometheus
