@@ -72,7 +72,8 @@ spec:
     stressors:
       memory:
         workers: 1
-        size: "128Mi"  # Stress memory to trigger resource pressure
+        # Use standard Kubernetes binary SI quantity (unquoted)
+        size: "128MiB"  # Stress memory to trigger resource pressure
     duration: "4m"  # Long enough for monitoring
 
 ---
