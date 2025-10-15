@@ -1,0 +1,20 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: backend-scaledobject-chaos
+  namespace: app-backend
+spec:
+  scaleTargetRef:
+    name: backend
+  minReplicaCount: 2
+  maxReplicaCount: 6
+  cooldownPeriod: 300
+  pollingInterval: 30
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # If number of chaos experiments in last 5 minutes > 0 scale up
+      query: 'increase(chaos_controller_manager_experiments_total{namespace="chaos-testing"}[5m])'
+      threshold: '0'
+    # No authenticationRef required for in-cluster Prometheus

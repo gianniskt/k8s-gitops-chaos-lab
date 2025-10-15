@@ -33,3 +33,9 @@ resources:
   # Chaos Experiments installation - depends on chaos-mesh
   - chaos-experiments-kustomization.yaml
 
+  # KEDA autoscaling for chaos responses - depends on monitoring (Prometheus)
+  - keda-kustomization.yaml
+
+  # KEDA autoscaling for chaos responses - depends on monitoring (Prometheus)
+  - keda-scaledobjects-kustomization.yaml
+

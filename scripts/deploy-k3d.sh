@@ -214,8 +214,24 @@ sleep 5
 echo "    - 10/9: Reconciling chaos-experiments kustomization..."
 flux reconcile kustomization chaos-experiments 2>/dev/null || echo "⚠️  chaos-experiments reconciliation failed"
 sleep 5
+echo "    - 11/9: Reconciling KEDA kustomizations and HelmRelease..."
+flux reconcile kustomization keda -n flux-system --with-source 2>/dev/null || echo "⚠️  keda (helmrepo/helmrelease) reconciliation failed"
+sleep 5
 
-echo "    - 11/9: Restarting all Linkerd viz deployments..."
+echo "    - Reconciling KEDA kustomization that includes ScaledObjects..."
+flux reconcile kustomization keda-kustomization --with-source 2>/dev/null || echo "⚠️  keda-scaledobjects reconciliation failed"
+sleep 10
+
+# Reconcile the HelmRelease for keda to ensure the operator is installed
+echo "    - Reconciling keda HelmRelease..."
+flux reconcile helmrelease keda -n keda 2>/dev/null || echo "⚠️  keda helmrelease reconciliation failed"
+sleep 20
+
+# Wait for KEDA pods to be ready
+echo "    - Waiting for KEDA pods to be ready..."
+kubectl -n keda wait --for=condition=Ready pod -l app.kubernetes.io/name=keda-operator --timeout=180s 2>/dev/null || echo "⚠️  KEDA pods may still be starting"
+
+echo "    - 12/9: Restarting all Linkerd viz deployments..."
 kubectl rollout restart deployment -n linkerd-viz 2>/dev/null || echo "⚠️  Failed to restart some Linkerd viz deployments"
 # Wait for viz deployments to be ready
 kubectl wait --for=condition=Available deployment/web -n linkerd-viz --timeout=120s 2>/dev/null || echo "⚠️  Web deployment may still be restarting"
@@ -231,6 +247,9 @@ kubectl wait --for=condition=Ready kustomization/chaos-experiments -n flux-syste
 kubectl wait --for=condition=Ready kustomization/cert-manager -n flux-system --timeout=300s 2>/dev/null || echo "⚠️  Cert-manager may still be applying..."
 kubectl wait --for=condition=Ready kustomization/linkerd-certificates -n flux-system --timeout=300s 2>/dev/null || echo "⚠️  Linkerd certificates may still be applying..."
 kubectl wait --for=condition=Ready kustomization/linkerd -n flux-system --timeout=300s 2>/dev/null || echo "⚠️  Linkerd may still be applying..."
+kubectl wait --for=condition=Ready kustomization/keda -n flux-system --timeout=300s 2>/dev/null || echo "⚠️  KEDA (helmrepo/helmrelease) may still be applying..."
+kubectl wait --for=condition=Ready kustomization/keda-kustomization -n flux-system --timeout=300s 2>/dev/null || echo "⚠️  KEDA ScaledObjects may still be applying..."
+kubectl wait --for=condition=Ready helmrelease/keda -n keda --timeout=300s 2>/dev/null || echo "⚠️  KEDA helmrelease may still be applying..."
 echo ""
 
 # Step 7: Wait for all pods
