@@ -6,5 +6,3 @@ resources:
   - chaosmesh-repo.yaml
   - chaosmesh-install.yaml
   - chaosmesh-ingress.yaml
-patchesStrategicMerge:
-  - patches/chaos-daemon-patch.yaml
