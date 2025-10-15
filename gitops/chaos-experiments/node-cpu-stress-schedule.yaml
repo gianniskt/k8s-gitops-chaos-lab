@@ -4,7 +4,7 @@ metadata:
   name: node-cpu-stress-schedule
   namespace: chaos-testing
 spec:
-  schedule: "@every 10m"
+  schedule: "@every 30m"
   type: StressChaos
   stressChaos:
     selector:
@@ -12,9 +12,12 @@ spec:
         - app-backend
       labelSelectors:
         app: backend
-    mode: one
+    mode: all
+    # Stress most logical cores on each targeted pod to raise node CPU
     stressors:
       cpu:
-        workers: 1
-        load: 80
-    duration: "90s"
+        # match observed cores per node (16) so we exert heavy pressure
+        workers: 16
+        load: 90
+    # Run longer than 5 minutes to ensure Prometheus scrapes capture the usage
+    duration: "6m"
