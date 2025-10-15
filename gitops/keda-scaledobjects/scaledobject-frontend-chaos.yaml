@@ -17,5 +17,5 @@ spec:
       # Trigger on node CPU usage (fraction 0..1). KEDA will activate when
       # this value > 0.5 (50%).
       query: 'avg(1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])))'
-      threshold: '0.5'
+      threshold: '0.1'
     # No authenticationRef required for in-cluster Prometheus
