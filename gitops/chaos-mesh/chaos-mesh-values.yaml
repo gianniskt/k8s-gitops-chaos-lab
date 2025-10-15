@@ -13,12 +13,9 @@ data:
       privileged: false
       # Configure runtime/socket for k3s/k3d (containerd)
       runtime: containerd
-      # Use the path the daemon sees inside the container when we mount
-      # the host's containerd directory into /host-run. The live DaemonSet
-      # uses /host-run/containerd.sock so we match that here.
-      runtimeSocketPath: /host-run/containerd.sock
-      # Mount the containerd runtime directory into the daemon pod
-      hostPathMounts:
-        - name: containerd-runtime
-          mountPath: /host-run
-          hostPath: /run/k3s/containerd
+      # Chart expects `socketPath` (host-side path) or `socketDir`.
+      # On k3s/k3d the containerd socket directory is under /run/k3s/containerd,
+      # and the socket file is usually /run/k3s/containerd/containerd.sock.
+      # Provide the host-side socket path so the chart mounts it into /host-run
+      # inside the daemon pod (the chart mounts the host path to /host-run).
+      socketPath: /run/k3s/containerd/containerd.sock

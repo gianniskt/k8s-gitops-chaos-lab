@@ -74,21 +74,21 @@ echo "✅ Cluster created"
 echo ""
 
 # Step 2: Build Docker images
-echo "🐳 Step 2/7: Building Docker images..."
+echo "🐳 Step 2/6: Building Docker images..."
 docker build -t backend:local ./app/backend
 docker build -t frontend:local ./app/frontend
 echo "✅ Images built"
 echo ""
 
 # Step 3: Load images into k3d
-echo "📦 Step 3/7: Loading images into k3d cluster..."
+echo "📦 Step 3/6: Loading images into k3d cluster..."
 k3d image import backend:local -c ${CLUSTER_NAME}
 k3d image import frontend:local -c ${CLUSTER_NAME}
 echo "✅ Images loaded"
 echo ""
 
 # Step 4: Install Flux Operator
-echo "⚙️  Step 4/7: Installing Flux Operator..."
+echo "⚙️  Step 4/6: Installing Flux Operator..."
 
 # Install Flux Operator using the official install.yaml
 kubectl apply -f https://github.com/controlplaneio-fluxcd/flux-operator/releases/latest/download/install.yaml
@@ -102,14 +102,14 @@ FLUX_OPERATOR_INSTALLED=true
 echo ""
 
 # Step 5: Configure FluxInstance for GitOps sync
-echo "🔗 Step 5/7: Configuring FluxInstance for GitOps sync..."
+echo "🔗 Step 5/6: Configuring FluxInstance for GitOps sync..."
 kubectl apply -f gitops/flux/fluxinstance.yaml
 echo "✅ FluxInstance configured"
 
 echo ""
 
 # Step 6: Wait for Flux to sync
-echo "⏳ Step 6/7: Waiting for Flux to sync resources (this may take 2-3 minutes)..."
+echo "⏳ Step 6/6: Waiting for Flux to sync resources (this may take 2-3 minutes)..."
 
 # First, wait for FluxInstance to be ready
 echo "  Waiting for FluxInstance to be ready..."
@@ -136,7 +136,7 @@ echo "✅ Core resources deployed"
 # Force reconciliation in the correct dependency order
 echo "🔄 Reconciling Flux resources in dependency order..."
 
-echo "    - 1/8: Reconciling flux-system kustomization..."
+echo "    - 1/12: Reconciling flux-system kustomization..."
 flux reconcile kustomization flux-system --with-source 2>/dev/null || echo "⚠️  flux-system reconciliation failed"
 sleep 5
 
@@ -144,7 +144,7 @@ sleep 5
 wait_for_service_endpoints() {
     local ns=$1
     local svc=$2
-    local timeout=${3:-120}
+    local timeout=${3:-160}
     echo "    Waiting up to ${timeout}s for endpoints of service $svc in namespace $ns..."
     local start=$(date +%s)
     while true; do
@@ -163,14 +163,15 @@ wait_for_service_endpoints() {
 }
 
 # Wait for ingress-nginx admission webhook service endpoints before applying ingresses
-if ! wait_for_service_endpoints ingress-nginx ingress-nginx-controller-admission 120; then
+if ! wait_for_service_endpoints ingress-nginx ingress-nginx-controller-admission 160; then
     echo "    ❌ ingress-nginx admission service endpoints not ready. The monitoring kustomization may fail to apply due to webhook validation errors."
     echo "    🔧 You can try rerunning the script after a short wait or manually check: kubectl get endpoints -n ingress-nginx ingress-nginx-controller-admission -o yaml"
     exit 1
 fi
 
 echo "    - 2/12: Reconciling monitoring kustomization..."
-flux reconcile kustomization monitoring 2>/dev/null || echo "⚠️  monitoring reconciliation failed"
+flux resume kustomization monitoring -n flux-system 2>/dev/null || true
+flux reconcile kustomization monitoring -n flux-system 2>/dev/null || echo "⚠️  monitoring reconciliation failed"
 sleep 5
 
 echo "    - 3/12: Reconciling reloader kustomization..."
