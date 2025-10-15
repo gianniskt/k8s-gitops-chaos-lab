@@ -16,5 +16,5 @@ spec:
       serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
       # Scale frontend if chaos experiments increased in the last 5 minutes
       query: 'increase(chaos_controller_manager_experiments_total{namespace="chaos-testing"}[5m])'
-      threshold: '0'
+  threshold: '1'
     # No authenticationRef required for in-cluster Prometheus
