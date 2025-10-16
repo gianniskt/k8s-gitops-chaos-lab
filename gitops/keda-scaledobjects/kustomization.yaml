@@ -1,5 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - scaledobject-backend-chaos.yaml
-  - scaledobject-frontend-chaos.yaml
+  # KEDA ScaledObjects for different chaos experiment triggers
+  - scaledobject-backend-chaos.yaml     # CPU and general backend scaling
+  - scaledobject-frontend-chaos.yaml    # Latency and error rate scaling
+  - scaledobject-memory-latency.yaml    # Memory pressure and latency-specific scaling

@@ -7,9 +7,6 @@ resources:
   # Consolidated sustainable chaos schedules (includes all core experiments)
   - chaos-schedules.yaml
   
-  # Additional CPU stress testing for KEDA scaling
-  - node-cpu-stress-schedule.yaml
-  
   # Monitoring integration
   - chaos-servicemonitor.yaml
   - servicemonitor-flux.yaml

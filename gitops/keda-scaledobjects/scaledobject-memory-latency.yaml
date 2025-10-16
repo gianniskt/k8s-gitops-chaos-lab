@@ -1,0 +1,52 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: backend-memory-scaledobject
+  namespace: app-backend
+spec:
+  scaleTargetRef:
+    name: backend
+  minReplicaCount: 2
+  maxReplicaCount: 8
+  cooldownPeriod: 180  # Shorter cooldown for memory pressure response
+  pollingInterval: 10  # More frequent polling for memory
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # Trigger on backend memory usage > 75% (responds to backend-memory-stress)
+      query: 'avg(container_memory_working_set_bytes{namespace="app-backend",pod=~"backend.*"} / container_spec_memory_limit_bytes{namespace="app-backend",pod=~"backend.*"})'
+      threshold: '0.75'
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # Also trigger on memory pressure conditions
+      query: 'avg(rate(container_memory_failures_total{namespace="app-backend",pod=~"backend.*"}[2m]))'
+      threshold: '0.1'
+
+---
+apiVersion: keda.sh/v1alpha1  
+kind: ScaledObject
+metadata:
+  name: backend-latency-scaledobject
+  namespace: app-backend
+spec:
+  scaleTargetRef:
+    name: backend
+  minReplicaCount: 2
+  maxReplicaCount: 6
+  cooldownPeriod: 240  # Medium cooldown for latency response
+  pollingInterval: 15
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # Trigger on request latency P90 > 300ms (responds to backend-latency-test)
+      query: 'histogram_quantile(0.90, sum(rate(response_latency_ms_bucket{dst_namespace="app-backend"}[2m])) by (le)) or histogram_quantile(0.90, sum(rate(request_duration_seconds_bucket{job="linkerd-proxy",dst_namespace="app-backend"}[2m])) by (le)) * 1000'
+      threshold: '300'
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # Also trigger on increased request queue length
+      query: 'avg(pending_requests{dst_namespace="app-backend"}) or 0'
+      threshold: '5'

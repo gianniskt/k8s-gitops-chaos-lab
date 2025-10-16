@@ -25,3 +25,10 @@ spec:
       query: 'avg(rate(container_cpu_usage_seconds_total{namespace="app-backend",pod=~"backend.*"}[2m]))'
       threshold: '0.7'
     # No authenticationRef required for in-cluster Prometheus
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # Trigger on backend memory usage > 80% (responds to memory stress tests)
+      query: 'avg(container_memory_working_set_bytes{namespace="app-backend",pod=~"backend.*"} / container_spec_memory_limit_bytes{namespace="app-backend",pod=~"backend.*"})'
+      threshold: '0.8'
+    # No authenticationRef required for in-cluster Prometheus
