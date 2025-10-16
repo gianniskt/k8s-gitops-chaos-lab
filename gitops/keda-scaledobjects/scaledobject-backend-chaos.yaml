@@ -7,16 +7,21 @@ spec:
   scaleTargetRef:
     name: backend
   minReplicaCount: 2
-  maxReplicaCount: 3
+  maxReplicaCount: 6
   cooldownPeriod: 300
   pollingInterval: 15
   triggers:
   - type: prometheus
     metadata:
       serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
-      # Trigger on node CPU usage (fraction 0..1). This query returns average
-      # node CPU usage across instances using node_exporter metrics.
-      # KEDA will activate when this value > threshold (0.5 = 50%).
-      query: 'avg(1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])))'
-      threshold: '0.1'
+      # Trigger on node CPU usage > 60% (sustained load during stress tests)
+      query: 'avg(1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])))'
+      threshold: '0.6'
+    # No authenticationRef required for in-cluster Prometheus
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # Also trigger on backend pod CPU usage > 70%
+      query: 'avg(rate(container_cpu_usage_seconds_total{namespace="app-backend",pod=~"backend.*"}[2m]))'
+      threshold: '0.7'
     # No authenticationRef required for in-cluster Prometheus

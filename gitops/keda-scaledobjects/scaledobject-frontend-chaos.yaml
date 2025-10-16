@@ -7,15 +7,21 @@ spec:
   scaleTargetRef:
     name: frontend
   minReplicaCount: 1
-  maxReplicaCount: 2
+  maxReplicaCount: 4
   cooldownPeriod: 300
   pollingInterval: 15
   triggers:
   - type: prometheus
     metadata:
       serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
-      # Trigger on node CPU usage (fraction 0..1). KEDA will activate when
-      # this value > 0.5 (50%).
-      query: 'avg(1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])))'
-      threshold: '0.1'
+      # Trigger on backend request latency P95 > 500ms (detects network chaos impact)
+      query: 'histogram_quantile(0.95, sum(rate(response_latency_ms_bucket{dst_namespace="app-backend"}[2m])) by (le)) or histogram_quantile(0.95, sum(rate(request_duration_seconds_bucket{job="linkerd-proxy",dst_namespace="app-backend"}[2m])) by (le)) * 1000'
+      threshold: '500'
+    # No authenticationRef required for in-cluster Prometheus
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # Also trigger on backend error rate > 10% (detects pod failures)
+      query: 'sum(rate(request_total{dst_namespace="app-backend",classification!="success"}[2m])) / sum(rate(request_total{dst_namespace="app-backend"}[2m])) * 100 or 0'
+      threshold: '10'
     # No authenticationRef required for in-cluster Prometheus
