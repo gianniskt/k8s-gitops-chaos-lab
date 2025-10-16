@@ -32,7 +32,8 @@ spec:
   sync:
     kind: GitRepository
     name: "flux-system"
-    url: "https://github.com/gianniskt/k8s-gitops-chaos-lab"
+    # Use ${GITHUB_USER} and ${GITHUB_REPO} placeholders; deploy script will substitute at apply time
+    url: "https://github.com/${GITHUB_USER}/${GITHUB_REPO}"
     ref: "refs/heads/main"
     path: "."
     interval: "1m0s"

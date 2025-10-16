@@ -8,9 +8,33 @@ echo ""
 
 # Configuration
 CLUSTER_NAME="gitops-chaos"
-GITHUB_USER="${1:-gianniskt}"
-GITHUB_REPO="${2:-k8s-gitops-chaos-lab}"
-GIT_URL="https://github.com/${GITHUB_USER}/${GITHUB_REPO}.git"
+
+# Prompt for GITHUB_USER if not supplied so the script can be run interactively
+if [ -z "${1:-}" ]; then
+    read -p "Enter your GitHub username (this will be used to build the repo URL): " GITHUB_USER
+    if [ -z "${GITHUB_USER:-}" ]; then
+        echo "Usage: $0 <GITHUB_USER> [GITHUB_REPO]"
+        echo "  Example (non-interactive): $0 my-github-user k8s-gitops-chaos-lab"
+        echo "You can also re-run the script and pass the username as the first argument."
+        exit 2
+    fi
+else
+    GITHUB_USER="$1"
+fi
+
+# Prompt for optional repo name; default to 'k8s-gitops-chaos-lab' when empty
+if [ -z "${2:-}" ]; then
+    read -p "Enter GitHub repo name [k8s-gitops-chaos-lab]: " GITHUB_REPO
+    # If user pressed Enter, use default
+    if [ -z "${GITHUB_REPO:-}" ]; then
+        GITHUB_REPO="k8s-gitops-chaos-lab"
+    fi
+else
+    GITHUB_REPO="$2"
+fi
+
+# Build the Git URL (no .git suffix to match how flux instances often reference repos)
+GIT_URL="https://github.com/${GITHUB_USER}/${GITHUB_REPO}"
 
 echo "Configuration:"
 echo "  Cluster: ${CLUSTER_NAME}"
