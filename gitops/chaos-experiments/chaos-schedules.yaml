@@ -61,7 +61,7 @@ metadata:
   labels:
     purpose: "memory-testing"
 spec:
-  schedule: "2,7 * * * *"  # Every 5 minutes, offset by 2 for faster testing
+  schedule: "*/6 * * * *"  # Every 6 minutes for faster testing
   type: StressChaos
   stressChaos:
     selector:
@@ -87,7 +87,7 @@ metadata:
   labels:
     purpose: "loadbalancing-testing"
 spec:
-  schedule: "4,9 * * * *"  # Every 5 minutes, offset by 4 for faster testing
+  schedule: "*/4 * * * *"  # Every 4 minutes for faster testing
   type: PodChaos
   podChaos:
     selector:
