@@ -34,7 +34,7 @@ metadata:
   labels:
     purpose: "latency-testing"
 spec:
-  schedule: "1,3,6,8 * * * *"  # Every 2-3 minutes with offsets for faster testing
+  schedule: "*/8 * * * *"  # Every 8 minutes for faster testing
   type: NetworkChaos
   networkChaos:
     selector:
@@ -74,7 +74,7 @@ spec:
       memory:
         workers: 6
         # Use standard Kubernetes binary SI quantity (unquoted)
-        size: "128MiB"  # Stress memory to trigger resource pressure
+        size: "512MiB"  # Stress memory to trigger resource pressure
     duration: "4m"  # Long enough for monitoring
 
 ---
@@ -129,7 +129,7 @@ metadata:
   name: node-cpu-stress-schedule
   namespace: chaos-testing
 spec:
-  schedule: "*/8 * * * *"  # Every 8 minutes
+  schedule: "*/7 * * * *"  # Every 7 minutes
   type: StressChaos
   stressChaos:
     selector:
