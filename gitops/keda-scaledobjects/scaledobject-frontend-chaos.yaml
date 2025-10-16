@@ -14,9 +14,9 @@ spec:
   - type: prometheus
     metadata:
       serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
-      # Trigger on node CPU usage > 20% (sustained load during stress tests)
+      # Trigger on node CPU usage > 30% (sustained load during stress tests)
       query: 'avg(1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])))'
-      threshold: '0.2'
+      threshold: '0.3'
   - type: prometheus
     metadata:
       serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
