@@ -75,7 +75,7 @@ spec:
         workers: 6
         # Use standard Kubernetes binary SI quantity (unquoted)
         size: "512MiB"  # Stress memory to trigger resource pressure
-    duration: "4m"  # Long enough for monitoring
+    duration: "6m"  # Long enough for monitoring
 
 ---
 # Schedule 4: Multi-Pod Failure (Every 30 minutes, offset +15) - Tests load balancing
@@ -145,8 +145,8 @@ spec:
     stressors:
       cpu:
         # workers will be auto-adjusted by scripts/compute_node_workers.sh
-        workers: 6
-        # reduce load to 30 for less intense stress
-        load: 40
+        workers: 8
+        # reduce load to 60 for less intense stress
+        load: 60
     # Run for 4 minutes
     duration: "4m"
