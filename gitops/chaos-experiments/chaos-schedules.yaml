@@ -137,10 +137,6 @@ spec:
         - app-backend
       labelSelectors:
         app: backend
-      # Restrict to the application container name to avoid targeting sidecars
-      # (e.g. linkerd-proxy may not be present on all pods)
-      containerNames:
-        - backend
     mode: all
     # Stress most logical cores on each targeted pod to raise node CPU
     # NOTE: set `workers:` to match your node CPU cores. Run
