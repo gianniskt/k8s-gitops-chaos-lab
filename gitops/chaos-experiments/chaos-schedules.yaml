@@ -129,7 +129,7 @@ metadata:
   name: node-cpu-stress-schedule
   namespace: chaos-testing
 spec:
-  schedule: "*/5 * * * *"  # Every 5 minutes
+  schedule: "*/8 * * * *"  # Every 8 minutes
   type: StressChaos
   stressChaos:
     selector:
