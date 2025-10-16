@@ -21,7 +21,8 @@ spec:
         "app": "backend"
     mode: one
     action: pod-kill
-    duration: "0s"
+  # keep the pod-kill in place for a short observable window so it appears in the Chaos UI
+  duration: "2m"
 
 ---
 # Schedule 2: Network Latency (Every 15 minutes, offset +5) - Creates observable latency spikes
@@ -119,7 +120,8 @@ spec:
         "app.kubernetes.io/part-of": "flux"
     mode: one
     action: pod-kill
-    duration: "0s"
+  # keep the flux pod-kill observable so dashboard/events show it
+  duration: "1m"
 ---
 apiVersion: chaos-mesh.org/v1alpha1
 kind: Schedule
@@ -137,10 +139,14 @@ spec:
         app: backend
     mode: all
     # Stress most logical cores on each targeted pod to raise node CPU
+    # NOTE: set `workers:` to match your node CPU cores. Run
+    #   ./scripts/compute_node_workers.sh
+    # to auto-detect node cores and patch this file before applying.
     stressors:
       cpu:
-        # match observed cores per node (16) so we exert heavy pressure
-        workers: 16
-        load: 90
+        # workers will be auto-adjusted by scripts/compute_node_workers.sh
+        workers: 1
+        # reduce load to 30 for less intense stress
+        load: 30
     # Run for 4 minutes
     duration: "4m"
