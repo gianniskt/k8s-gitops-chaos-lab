@@ -127,8 +127,20 @@ echo ""
 
 # Step 5: Configure FluxInstance for GitOps sync
 echo "🔗 Step 5/6: Configuring FluxInstance for GitOps sync..."
-kubectl apply -f gitops/flux/fluxinstance.yaml
-echo "✅ FluxInstance configured"
+# Render a temporary copy of fluxinstance.yaml with the user inputs substituted
+# This avoids modifying the repo file and works even when running non-interactively
+TMP_FLUX_INSTANCE="$(mktemp -t fluxinstance.XXXX 2>/dev/null || mktemp)"
+sed -e "s|\${GITHUB_USER}|${GITHUB_USER}|g" -e "s|\${GITHUB_REPO}|${GITHUB_REPO}|g" gitops/flux/fluxinstance.yaml > "$TMP_FLUX_INSTANCE"
+
+# Apply the rendered file. If it fails, try applying the original file as a fallback
+if kubectl apply -f "$TMP_FLUX_INSTANCE" >/dev/null 2>&1; then
+    echo "✅ FluxInstance configured"
+else
+    echo "⚠️  Applying rendered FluxInstance failed; attempting to apply original file (may fail if placeholders are unresolved)"
+    kubectl apply -f gitops/flux/fluxinstance.yaml 2>/dev/null || echo "⚠️  Failed to apply fluxinstance.yaml"
+fi
+
+rm -f "$TMP_FLUX_INSTANCE"
 
 echo ""
 
