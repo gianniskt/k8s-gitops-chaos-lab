@@ -242,7 +242,7 @@ data:
                   }
                 ]
               },
-              "unit": "s"
+              "unit": "short"
             },
             "overrides": []
           },
@@ -250,6 +250,93 @@ data:
             "h": 8,
             "w": 12,
             "x": 0,
+            "y": 8
+          },
+          "id": 7,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "expr": "count(kube_pod_info{namespace=\"app-frontend\", pod=~\"frontend.*\"})",
+              "legendFormat": "Running Pods",
+              "refId": "A"
+            }
+          ],
+          "title": "Frontend Pods Running",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
             "y": 8
           },
           "id": 3,
@@ -311,7 +398,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 8
+            "y": 16
           },
           "id": 4,
           "options": {
@@ -404,7 +491,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 32
+            "y": 16
           },
           "id": 6,
           "options": {
@@ -485,9 +572,9 @@ data:
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 40
+            "y": 24
           },
-          "id": 7,
+          "id": 8,
           "options": {
             "cellHeight": "sm",
             "footer": {
@@ -542,17 +629,6 @@ data:
             }
           ],
           "type": "table"
-        }
-        ,
-        {
-          "datasource": {"type":"prometheus","uid":"prometheus"},
-          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"},"mappings": [],"thresholds": {"mode": "absolute","steps": [{"color":"green","value":null},{"color":"red","value":1}]}}},
-          "gridPos": {"h":4,"w":12,"x":12,"y":8},
-          "id": 10,
-          "options": {"orientation":"auto","reduceOptions":{"calcs":["lastNotNull"]}},
-          "targets": [{"datasource":{"type":"prometheus","uid":"prometheus"},"expr":"sum(kube_pod_container_status_restarts_total{namespace=\"flux-system\"})","legendFormat":"Total Flux controller restarts","refId":"A"}],
-          "title": "Flux Controller Restarts",
-          "type": "stat"
         }
       ],
       "refresh": "10s",
