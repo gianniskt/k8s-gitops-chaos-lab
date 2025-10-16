@@ -145,7 +145,7 @@ spec:
     stressors:
       cpu:
         # workers will be auto-adjusted by scripts/compute_node_workers.sh
-        workers: 1
+        workers: 6
         # reduce load to 30 for less intense stress
         load: 30
     # Run for 4 minutes
