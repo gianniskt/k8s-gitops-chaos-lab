@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: frontend.127.0.0.1.nip.io
+  - host: frontend.127.0.0.1.traefik.me
     http:
       paths:
       - path: /
