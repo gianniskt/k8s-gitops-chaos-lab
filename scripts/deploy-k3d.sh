@@ -94,7 +94,8 @@ k3d cluster create "${CLUSTER_NAME}" \
     --wait --timeout 10m
 
 kubectl config use-context k3d-${CLUSTER_NAME}
-echo "✅ Cluster created"
+echo "✅ Cluster created."
+sleep 10
 echo ""
 
 # Step 2: Build Docker images
@@ -106,9 +107,59 @@ echo ""
 
 # Step 3: Load images into k3d
 echo "📦 Step 3/6: Loading images into k3d cluster..."
-k3d image import backend:local -c ${CLUSTER_NAME}
-k3d image import frontend:local -c ${CLUSTER_NAME}
-echo "✅ Images loaded"
+# You can set SKIP_IMAGE_IMPORT=true to skip importing images into the k3d node
+if [ "${SKIP_IMAGE_IMPORT:-}" = "true" ]; then
+    echo "ℹ️  SKIP_IMAGE_IMPORT=true — skipping k3d image import (images must be available via registry)"
+else
+    # Import built images into the k3d node so the cluster can use them without a registry.
+    echo "    Importing backend:local..."
+    if ! k3d image import backend:local -c ${CLUSTER_NAME}; then
+        echo "⚠️  k3d image import backend:local failed — continuing but the cluster may not have the image"
+    fi
+    echo "    Importing frontend:local..."
+    if ! k3d image import frontend:local -c ${CLUSTER_NAME}; then
+        echo "⚠️  k3d image import frontend:local failed — continuing but the cluster may not have the image"
+    fi
+    echo "✅ Images imported (or attempted)"
+
+    # Update kubeconfig and switch to k3d context
+    # First, ensure k3d updates the kubeconfig and fix host.docker.internal resolution
+    if k3d kubeconfig merge ${CLUSTER_NAME} --kubeconfig-merge-default >/dev/null 2>&1; then
+        echo "🔁 Merged k3d kubeconfig to default location"
+        # Adjust the kubeconfig server address depending on environment.
+        # When running inside a devcontainer/container we prefer using
+        # host.docker.internal so kubectl in the container reaches the
+        # k3d loadbalancer on the host. On a local host environment we
+        # use 127.0.0.1 so tools on the host connect directly.
+        if [ -f ~/.kube/config ]; then
+            if [ "${SKIP_INSTALLATIONS:-false}" = "true" ]; then
+                # Running in a devcontainer/container: ensure the kubeconfig
+                # references host.docker.internal so in-container kubectl works.
+                sed -i.bak 's|https://127.0.0.1:6550|https://host.docker.internal:6550|g' ~/.kube/config || true
+                echo "🔧 Kept server address as host.docker.internal:6550 for container/devcontainer"
+            else
+                # Running on the local host: prefer 127.0.0.1 so host tools can reach the API.
+                sed -i.bak 's|host.docker.internal:6550|127.0.0.1:6550|g' ~/.kube/config || true
+                echo "🔧 Fixed server address to use 127.0.0.1:6550"
+            fi
+        fi
+        # Switch to the k3d context
+        kubectl config use-context k3d-${CLUSTER_NAME}
+        echo "✅ Switched to k3d-${CLUSTER_NAME} context"
+    fi
+
+    # Quick kubectl health-check and retry loop to avoid surprising failures on host
+    RETRIES=6
+    until kubectl version >/dev/null 2>&1; do
+        RETRIES=$((RETRIES-1))
+        if [ $RETRIES -le 0 ]; then
+            echo "❌ Kubernetes API unreachable after image import. You may need to run: k3d cluster list && docker ps --filter name=k3d -a"
+            break
+        fi
+        echo "  Waiting for Kubernetes API to become reachable after image import... (retries left: $RETRIES)"
+        sleep 3
+    done
+fi
 echo ""
 
 # Step 4: Install Flux Operator
