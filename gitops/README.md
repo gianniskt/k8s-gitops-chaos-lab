@@ -3,85 +3,104 @@
 This document provides an overview of the `gitops/` directory structure, component dependencies, and deployment orchestration for the Kubernetes GitOps Chaos Engineering platform.
 
 ## Directory Structure
-
 ```
 gitops/
-├── flux/                          # Flux CD configuration
-│   └── fluxinstance.yaml         # Main Flux instance configuration
-├── kustomizations/               # Flux Kustomization definitions
-│   └── kustomization.yaml        # Master kustomization with dependency chain
 ├── cert-manager/                 # Certificate management
 ├── chaos-experiments/            # Chaos engineering experiment definitions
 ├── chaos-mesh/                   # Chaos Mesh operator and configuration
+├── flux/                         # Flux CD configuration
+├── ingress-nginx/                # Ingress controller manifests
+├── keda/                         # KEDA autoscaler manifests
+├── keda-scaledobjects/           # KEDA ScaledObjects definitions
+├── kustomizations/               # Flux Kustomization definitions
 ├── linkerd/                      # Linkerd service mesh
 ├── linkerd-certificates/         # Linkerd mTLS certificates
 ├── manifests/                    # Application manifests (backend/frontend)
 ├── monitoring/                   # Prometheus/Grafana monitoring stack
+├── reloader/                     # Configuration reloader for secrets/configmaps
 ├── servicemonitor/               # ServiceMonitor CRDs for monitoring
-└── reloader/                     # Configuration reloader for secrets/configmaps
+└── README.md                     # This documentation file
 ```
 
 ## Detailed File Structure
-
 ```
 gitops/
-├── README.md                     # This documentation file
+├── README.md
+├── cert-manager/
+│   ├── cert-manager-repo.yaml
+│   ├── cert-manager.yaml
+│   └── kustomization.yaml
+├── chaos-experiments/
+│   ├── CHAOS-TESTING.md
+│   ├── chaos-schedules.yaml
+│   └── kustomization.yaml
+├── chaos-mesh/
+│   ├── chaos-mesh-values.yaml
+│   ├── chaosmesh-ingress.yaml
+│   ├── chaosmesh-install.yaml
+│   ├── chaosmesh-repo.yaml
+│   └── kustomization.yaml
 ├── flux/
-│   ├── kustomization.yaml        # Flux configuration orchestration
-│   └── fluxinstance.yaml         # FluxCD Git sync configuration
-├── kustomizations/               # Flux Kustomization definitions
-│   ├── kustomization.yaml        # Master kustomization with dependency chain
-│   ├── namespaces.yaml           # Kubernetes namespaces creation
-│   ├── cert-manager-kustomization.yaml     # cert-manager deployment
-│   ├── linkerd-certificates-kustomization.yaml   # Linkerd certificates
-│   ├── linkerd-kustomization.yaml         # Linkerd service mesh
-│   ├── manifests-kustomization.yaml       # Application manifests
-│   ├── monitoring-kustomization.yaml      # Monitoring stack
-│   ├── servicemonitor-kustomization.yaml  # ServiceMonitor CRDs
-│   ├── reloader-kustomization.yaml        # Configuration reloader
-│   ├── chaos-mesh-kustomization.yaml      # Chaos Mesh operator
-│   └── chaos-experiments-kustomization.yaml   # Chaos experiments
-├── cert-manager/                 # Certificate management
-│   ├── kustomization.yaml        # cert-manager orchestration
-│   ├── cert-manager-repo.yaml    # cert-manager Helm repository
-│   └── cert-manager.yaml         # cert-manager installation
-├── linkerd/                      # Linkerd service mesh
-│   ├── kustomization.yaml        # Linkerd orchestration
-│   ├── linkerd-repo.yaml         # Linkerd Helm repository
-│   ├── linkerd-crds.yaml         # Linkerd CRDs
-│   ├── linkerd-control-plane.yaml   # Linkerd control plane
-│   └── linkerd-viz.yaml          # Linkerd visualization extension
-├── linkerd-certificates/         # Linkerd mTLS certificates
-│   ├── kustomization.yaml        # Certificate orchestration
-│   └── linkerd-certificates.yaml # Certificate definitions with comments
-├── manifests/                    # Application deployments
-│   ├── kustomization.yaml        # Application orchestration
-│   ├── namespaces.yaml           # Application namespaces
-│   ├── backend.yaml              # Backend deployment
-│   ├── frontend.yaml             # Frontend deployment
-│   └── servicemonitor-apps.yaml  # Application monitoring
-├── monitoring/                   # Prometheus/Grafana monitoring
-│   ├── kustomization.yaml        # Monitoring orchestration
-│   ├── helmrepo.yaml             # Prometheus Helm repository
-│   ├── monitoring-stack.yaml     # Prometheus + Grafana stack
-│   └── dashboards/
-│       └── chaos-dashboard.yaml  # Custom Grafana dashboard
-├── servicemonitor/               # ServiceMonitor CRs for monitoring
-│   ├── kustomization.yaml        # Orchestration for ServiceMonitors
-│   ├── chaos-servicemonitor.yaml # Chaos Mesh ServiceMonitor
-│   └── flux-servicemonitor.yaml  # Flux controllers ServiceMonitor
-├── reloader/                     # Configuration reloader
-│   ├── kustomization.yaml        # Reloader orchestration
-│   ├── stakater-helm-repo.yaml   # Reloader Helm repository
-│   └── reloader.yaml             # Reloader installation
-├── chaos-mesh/                   # Chaos Mesh operator
-│   ├── kustomization.yaml        # Chaos Mesh orchestration
-│   ├── chaosmesh-repo.yaml       # Chaos Mesh Helm repository
-│   └── chaosmesh-install.yaml    # Chaos Mesh installation
-└── chaos-experiments/            # Chaos engineering experiments
-  ├── kustomization.yaml        # Chaos experiments orchestration
-  ├── CHAOS-TESTING.md          # Chaos testing documentation
-  ├── chaos-schedules.yaml      # Chaos experiment schedules
+│   ├── fluxinstance.yaml
+│   └── kustomization.yaml
+├── ingress-nginx/
+│   ├── ingress-nginx-repo.yaml
+│   ├── ingress-nginx.yaml
+│   └── kustomization.yaml
+├── keda/
+│   ├── helmrelease-keda.yaml
+│   ├── helmrepo.yaml
+│   └── kustomization.yaml
+├── keda-scaledobjects/
+│   ├── kustomization.yaml
+│   ├── scaledobject-backend-chaos.yaml
+│   └── scaledobject-frontend-chaos.yaml
+├── kustomizations/
+│   ├── cert-manager-kustomization.yaml
+│   ├── chaos-experiments-kustomization.yaml
+│   ├── chaos-mesh-kustomization.yaml
+│   ├── ingress-nginx-kustomization.yaml
+│   ├── keda-kustomization.yaml
+│   ├── keda-scaled-objects-kustomization.yaml
+│   ├── kustomization.yaml
+│   ├── linkerd-certificates-kustomization.yaml
+│   ├── linkerd-kustomization.yaml
+│   ├── manifests-kustomization.yaml
+│   ├── monitoring-kustomization.yaml
+│   ├── namespaces.yaml
+│   ├── reloader-kustomization.yaml
+│   └── servicemonitor-kustomization.yaml
+├── linkerd/
+│   ├── kustomization.yaml
+│   ├── linkerd-control-plane.yaml
+│   ├── linkerd-crds.yaml
+│   ├── linkerd-ingress.yaml
+│   ├── linkerd-repo.yaml
+│   └── linkerd-viz.yaml
+├── linkerd-certificates/
+│   ├── kustomization.yaml
+│   └── linkerd-certificates.yaml
+├── manifests/
+│   ├── backend.yaml
+│   ├── frontend.yaml
+│   ├── ingress-backend.yaml
+│   ├── ingress-frontend.yaml
+│   ├── kustomization.yaml
+│   └── servicemonitor-apps.yaml
+├── monitoring/
+│   ├── dashboards/
+│   ├── grafana-ingress.yaml
+│   ├── helmrepo.yaml
+│   ├── kustomization.yaml
+│   └── monitoring-stack.yaml
+├── reloader/
+│   ├── kustomization.yaml
+│   ├── reloader.yaml
+│   └── stakater-helm-repo.yaml
+└── servicemonitor/
+    ├── chaos-servicemonitor.yaml
+    ├── flux-servicemonitor.yaml
+    └── kustomization.yaml
 ```
 
 ## Deployment Order and Dependencies
