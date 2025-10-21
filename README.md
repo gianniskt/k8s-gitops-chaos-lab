@@ -1,6 +1,6 @@
 # GitOps Chaos Engineering Demo
 
-Kubernetes GitOps Homelab with Flux, Linkerd, Cert-Manager, Chaos Mesh & Prometheus
+Kubernetes GitOps Homelab with Flux, Linkerd, Cert-Manager, Chaos Mesh, Keda & Prometheus
 
 ## Architecture Overview
 
