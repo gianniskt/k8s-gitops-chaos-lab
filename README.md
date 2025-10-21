@@ -19,12 +19,14 @@ Kubernetes GitOps Homelab with Flux, Linkerd, Cert-Manager, Chaos Mesh & Prometh
 
 ## What It Does
 
-1. **Deploys microservices** using FluxCD GitOps from this Git repository
-2. **Apply Chaos Experiments** regarding pods, network and other k8s components
-3. **Monitors chaos impact** with Prometheus metrics and Grafana dashboards
-4. **Auto-scales applications** through KEDA when chaos experiments trigger load changes
-5. **Self-heals** through Kubernetes Deployment controllers and service mesh
-6. **Syncs changes** - any Git commits automatically deploy to cluster
+
+1. **Creates K3d Cluster** using K3d Cli
+2. **Deploys microservices** using FluxCD GitOps from this Git repository
+3. **Apply Chaos Experiments** regarding pods, network and other k8s components
+4. **Monitors chaos impact** with Prometheus metrics and Grafana dashboards
+5. **Auto-scales applications** through KEDA when chaos experiments trigger load changes
+6. **Self-heals** through Kubernetes Deployment controllers and service mesh
+7. **Syncs changes** - any Git commits automatically deploy to cluster
 
 ## Quick Start
 
