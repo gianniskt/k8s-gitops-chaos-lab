@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-mesh-values
+  namespace: chaos-testing
+data:
+  values.yaml: |
+    # Minimal configuration for basic chaos experiments
+    # Only enable what's needed for pod-kill, pod-failure, and dns-chaos
+    chaosDaemon:
+      # Try with minimal permissions first
+      hostNetwork: false
+      privileged: false
+      # Configure runtime/socket for k3s/k3d (containerd)
+      runtime: containerd
+      # Chart expects `socketPath` (host-side path) or `socketDir`.
+      # On k3s/k3d the containerd socket directory is under /run/k3s/containerd,
+      # and the socket file is usually /run/k3s/containerd/containerd.sock.
+      # Provide the host-side socket path so the chart mounts it into /host-run
+      # inside the daemon pod (the chart mounts the host path to /host-run).
+      socketPath: /run/k3s/containerd/containerd.sock

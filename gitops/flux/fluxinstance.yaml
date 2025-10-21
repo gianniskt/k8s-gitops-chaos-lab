@@ -1,0 +1,44 @@
+apiVersion: fluxcd.controlplane.io/v1
+kind: FluxInstance
+metadata:
+  name: flux
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/managed-by: flux-operator
+    app.kubernetes.io/created-by: flux-operator-installer
+    sc_component: flux-instance
+spec:
+  # Distribution and version
+  distribution:
+    version: "2.x"
+    registry: "ghcr.io/fluxcd"
+  
+  # Components to install
+  components:
+    - source-controller
+    - kustomize-controller
+    - helm-controller
+    - notification-controller
+  
+  # Cluster configuration
+  cluster:
+    type: kubernetes
+    multitenant: false
+    networkPolicy: false
+    domain: "cluster.local"
+  
+  # Sync configuration for GitOps
+  sync:
+    kind: GitRepository
+    name: "flux-system"
+    # Use ${GITHUB_USER} and ${GITHUB_REPO} placeholders; deploy script will substitute at apply time
+    url: "https://github.com/${GITHUB_USER}/${GITHUB_REPO}"
+    ref: "refs/heads/main"
+    path: "."
+    interval: "1m0s"
+    pullSecret: ""  # Leave empty for public repos. If it's private repo, you have to create a secret with ssh key or the authentication of your choice in order to pull changes from this repo.
+  
+  # Kustomization configuration
+  kustomize:
+    patches: []

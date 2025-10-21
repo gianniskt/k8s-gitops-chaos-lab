@@ -1,0 +1,25 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: manifests
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 5m
+  path: "gitops/manifests"
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: linkerd
+  # Health checks for core applications
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: backend
+      namespace: app-backend
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: frontend
+      namespace: app-frontend

@@ -1,0 +1,48 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: backend-scaledobject-chaos
+  namespace: app-backend
+spec:
+  scaleTargetRef:
+    name: backend
+  minReplicaCount: 2
+  maxReplicaCount: 8  # Increased from 6 since this now handles all backend scaling
+  cooldownPeriod: 180  # Reduced for faster response
+  pollingInterval: 15
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # Trigger on node CPU usage > 20% (sustained load during stress tests)
+      query: 'avg(1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])))'
+      threshold: '0.2'
+    # No authenticationRef required for in-cluster Prometheus
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # Also trigger on backend pod CPU usage > 40%
+      query: 'avg(rate(container_cpu_usage_seconds_total{namespace="app-backend",pod=~"backend.*"}[2m]))'
+      threshold: '0.4'
+    # No authenticationRef required for in-cluster Prometheus
+  # Error rate scaling (responds to pod-kill and pod-failure schedules)
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # Trigger when backend error rate (non-success classification) > 10%
+      query: 'sum(rate(request_total{dst_namespace="app-backend",classification!="success"}[2m])) / sum(rate(request_total{dst_namespace="app-backend"}[2m])) * 100 or 0'
+      threshold: '10'
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # Trigger on backend memory usage > 40% (responds to memory stress tests)
+      query: 'avg(container_memory_working_set_bytes{namespace="app-backend",pod=~"backend.*"} / container_spec_memory_limit_bytes{namespace="app-backend",pod=~"backend.*"})'
+      threshold: '0.4'
+    # No authenticationRef required for in-cluster Prometheus
+  - type: prometheus
+    metadata:
+      serverAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+      # Trigger on backend latency P90 > 100ms (responds to backend-latency-test)
+      query: 'histogram_quantile(0.90, sum(rate(response_latency_ms_bucket{dst_namespace="app-backend"}[2m])) by (le)) or histogram_quantile(0.90, sum(rate(request_duration_seconds_bucket{job="linkerd-proxy",dst_namespace="app-backend"}[2m])) by (le)) * 1000'
+      threshold: '100'
+    # No authenticationRef required for in-cluster Prometheus

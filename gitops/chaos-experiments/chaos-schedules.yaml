@@ -1,0 +1,143 @@
+---
+# Chaos Experiments for Observable Impact
+# These experiments are spaced to avoid overlap and provide sustained observable metrics
+
+# Schedule 1: Backend Pod Kill (Every 5 minutes) - Tests resilience and triggers scaling
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: backend-resilience-test
+  namespace: chaos-testing
+  labels:
+    purpose: "resilience-testing"
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  type: PodChaos
+  podChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: one
+    action: pod-kill
+    duration: "2m"
+
+---
+# Schedule 2: Network Latency (Every 8 minutes) - Creates observable latency spikes
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: backend-latency-test
+  namespace: chaos-testing
+  labels:
+    purpose: "latency-testing"
+spec:
+  schedule: "*/8 * * * *"  # Every 8 minutes
+  type: NetworkChaos
+  networkChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: one
+    action: delay
+    delay:
+      latency: "400ms"
+      correlation: "100"
+      jitter: "200ms"
+    duration: "3m"
+    direction: to
+
+---
+# Schedule 3: Memory Stress (Every 6 minutes) - Tests memory pressure
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: backend-memory-stress
+  namespace: chaos-testing
+  labels:
+    purpose: "memory-testing"
+spec:
+  schedule: "*/6 * * * *"  # Every 6 minutes for faster testing
+  type: StressChaos
+  stressChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: one
+    stressors:
+      memory:
+        workers: 6      # Number of cpu cores. You can modify this value according to your node's CPU configuration.
+        size: "512MiB"  # Stress memory to trigger resource pressure
+    duration: "6m"
+
+---
+# Schedule 4: Multi-Pod Failure (Every 4 minutes) - Tests load balancing
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: backend-loadbalance-test
+  namespace: chaos-testing
+  labels:
+    purpose: "loadbalancing-testing"
+spec:
+  schedule: "*/4 * * * *"  # Every 4 minutes for faster testing
+  type: PodChaos
+  podChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        "app": "backend"
+    mode: fixed-percent
+    value: "50"  # Kill 50% of backend pods
+    action: pod-failure
+    duration: "2m"
+
+---
+# Schedule 5: Flux Controller Test (Every 10 minutes) - Tests GitOps resilience
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: flux-resilience-test
+  namespace: chaos-testing
+  labels:
+    purpose: "gitops-testing"
+spec:
+  schedule: "*/10 * * * *"  # Every 10 minutes
+  type: PodChaos
+  podChaos:
+    selector:
+      namespaces:
+        - flux-system
+      labelSelectors:
+        "app.kubernetes.io/part-of": "flux"
+    mode: one
+    action: pod-kill
+    duration: "1m"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: node-cpu-stress-schedule
+  namespace: chaos-testing
+spec:
+  schedule: "*/7 * * * *"  # Every 7 minutes
+  type: StressChaos
+  stressChaos:
+    selector:
+      namespaces:
+        - app-backend
+      labelSelectors:
+        app: backend
+    mode: all
+    stressors:
+      cpu:
+        workers: 8
+        load: 60
+    # Run for 4 minutes
+    duration: "4m"

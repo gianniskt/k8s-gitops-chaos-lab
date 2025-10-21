@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Flux Kustomizations for proper dependency management
+resources:
+  # Namespaces
+  - namespaces.yaml
+
+  # Monitoring stack
+  - monitoring-kustomization.yaml
+
+  # Monitoring stack
+  - servicemonitor-kustomization.yaml
+
+  # Reloader for automated certificate sync - depends on monitoring
+  - reloader-kustomization.yaml
+
+  # cert-manager installation
+  - cert-manager-kustomization.yaml
+
+  # Linkerd certificates - depends on cert-manager
+  - linkerd-certificates-kustomization.yaml
+
+  # Linkerd service mesh installation
+  - linkerd-kustomization.yaml
+
+    # Ingress nginx
+  - ingress-nginx-kustomization.yaml
+
+  # Base manifests (namespaces, applications) - depends on linkerd
+  - manifests-kustomization.yaml
+
+  # Chaos Mesh installation - depends on manifests
+  - chaos-mesh-kustomization.yaml
+
+  # Chaos Experiments installation - depends on chaos-mesh
+  - chaos-experiments-kustomization.yaml
+
+  # KEDA autoscaling for chaos responses - depends on monitoring (Prometheus)
+  - keda-kustomization.yaml
+
+  # KEDA autoscaling for chaos responses - depends on monitoring (Prometheus)
+  - keda-scaled-objects-kustomization.yaml
+
