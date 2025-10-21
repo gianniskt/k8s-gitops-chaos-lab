@@ -40,7 +40,7 @@ chmod +x scripts/
 
 ### Option 2: DevContainer (Recommended for Windows/Complex Setups)
 
-You can use devcontainer.json which pulls the gianniskt/azure-gitops-image:
+You can use devcontainer.json which pulls the [gianniskt/azure-gitops-image](https://github.com/gianniskt/azure-gitops-image):
 
 ```bash
 # 1. Open k8s-gitops-chaos-lab in VS Code
@@ -66,7 +66,6 @@ devcontainer rebuild --workspace-folder . && devcontainer open --workspace-folde
 The k3d script will:
 - Create k3d cluster (K3s in Docker containers)
 - Build container images and import them into k3d
-	- Note: Image import can be skipped with `SKIP_IMAGE_IMPORT=true`
 	- The script re-exports the k3d kubeconfig after import to avoid transient API routing issues
 - Install FluxCD Operator
 - Deploy GitOps components (Flux, cert-manager, Linkerd service mesh, KEDA, monitoring stack, ingress-nginx)
