@@ -4,19 +4,4 @@ kind: Kustomization
 # ESSENTIAL chaos experiments for sustainable observable impact
 # Spaced experiments that trigger KEDA scaling and show dashboard metrics
 resources:
-  # Consolidated sustainable chaos schedules (includes all core experiments)
   - chaos-schedules.yaml
-  
-  # Monitoring integration
-  - chaos-servicemonitor.yaml
-
-# ✅ ESSENTIAL EXPERIMENTS:
-# - pod-kill-simple (PodChaos with pod-kill action)
-#   * Instantly kills one backend pod
-#   * Demonstrates Kubernetes self-healing
-# - dns-chaos-simple (DNSChaos)
-#   * Causes DNS resolution errors for google.com
-#   * Demonstrates network/DNS resilience
-#
-# Both experiments provide clear observable impact in Grafana
-# with minimal complexity for demos/learning
