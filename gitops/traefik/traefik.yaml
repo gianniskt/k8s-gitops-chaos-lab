@@ -15,7 +15,7 @@ spec:
   interval: 5m
   install:
     createNamespace: true
-    # Don't skip CRDs - we need Traefik's Middleware CRD
+    crds: Skip  # Skip all CRDs - we install Middleware CRD separately
   values:
     # Disable Gateway API to avoid CRD conflicts
     providers:
