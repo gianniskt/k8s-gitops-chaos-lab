@@ -17,4 +17,4 @@ spec:
           service:
             name: kube-prometheus-stack-grafana
             port:
-              number: 3000
+              number: 80
