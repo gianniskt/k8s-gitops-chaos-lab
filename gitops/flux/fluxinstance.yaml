@@ -34,7 +34,7 @@ spec:
     name: "flux-system"
     # Use ${GITHUB_USER} and ${GITHUB_REPO} placeholders; deploy script will substitute at apply time
     url: "https://github.com/${GITHUB_USER}/${GITHUB_REPO}"
-    ref: "refs/heads/main"
+    ref: "refs/heads/remove-linkerd-crds"
     path: "."
     interval: "1m0s"
     pullSecret: ""  # Leave empty for public repos. If it's private repo, you have to create a secret with ssh key or the authentication of your choice in order to pull changes from this repo.
