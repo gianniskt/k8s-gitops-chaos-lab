@@ -3,6 +3,8 @@ kind: Ingress
 metadata:
   name: linkerd-viz-ingress
   namespace: linkerd-viz
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: linkerd-viz-headers@kubernetescrd
 spec:
   ingressClassName: traefik
   rules:
