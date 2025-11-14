@@ -16,6 +16,11 @@ spec:
   install:
     createNamespace: true
   values:
+    # Disable Gateway API to avoid CRD conflicts with Linkerd
+    providers:
+      kubernetesGateway:
+        enabled: false
+    
     # Enable dashboard
     ingressRoute:
       dashboard:

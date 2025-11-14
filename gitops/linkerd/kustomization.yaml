@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - linkerd-repo.yaml
-  # linkerd-crds.yaml removed - CRDs are installed by Traefik (Gateway API) and linkerd-control-plane (Linkerd-specific)
+  - linkerd-crds.yaml
   - linkerd-control-plane.yaml
   - linkerd-viz.yaml
   - linkerd-ingress.yaml
