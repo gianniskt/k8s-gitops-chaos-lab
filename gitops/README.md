@@ -9,7 +9,7 @@ gitops/
 ├── chaos-experiments/            # Chaos engineering experiment definitions
 ├── chaos-mesh/                   # Chaos Mesh operator and configuration
 ├── flux/                         # Flux CD configuration
-├── ingress-nginx/                # Ingress controller manifests
+├── traefik/                      # Traefik ingress controller manifests
 ├── keda/                         # KEDA autoscaler manifests
 ├── keda-scaledobjects/           # KEDA ScaledObjects definitions
 ├── kustomizations/               # Flux Kustomization definitions
@@ -43,9 +43,9 @@ gitops/
 ├── flux/
 │   ├── fluxinstance.yaml
 │   └── kustomization.yaml
-├── ingress-nginx/
-│   ├── ingress-nginx-repo.yaml
-│   ├── ingress-nginx.yaml
+├── traefik/
+│   ├── traefik-repo.yaml
+│   ├── traefik.yaml
 │   └── kustomization.yaml
 ├── keda/
 │   ├── helmrelease-keda.yaml
@@ -59,7 +59,7 @@ gitops/
 │   ├── cert-manager-kustomization.yaml
 │   ├── chaos-experiments-kustomization.yaml
 │   ├── chaos-mesh-kustomization.yaml
-│   ├── ingress-nginx-kustomization.yaml
+│   ├── traefik-kustomization.yaml
 │   ├── keda-kustomization.yaml
 │   ├── keda-scaled-objects-kustomization.yaml
 │   ├── kustomization.yaml
@@ -257,7 +257,7 @@ resources:
   - linkerd-certificates-kustomization.yaml  # 6. Issue Linkerd certs
   - linkerd-kustomization.yaml         # 7. Deploy Linkerd mesh
   - manifests-kustomization.yaml       # 8. Deploy applications
-  - ingress-nginx-kustomization.yaml   # 9. Deploy ingress controller
+  - traefik-kustomization.yaml         # 9. Deploy Traefik ingress controller
   - keda-kustomization.yaml            # 10. Deploy KEDA operator
   - keda-scaled-objects-kustomization.yaml # 11. Deploy KEDA ScaledObjects
   - chaos-mesh-kustomization.yaml      # 12. Deploy Chaos Mesh

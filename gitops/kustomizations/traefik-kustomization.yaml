@@ -1,12 +1,12 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: ingress-nginx
+  name: traefik
   namespace: flux-system
 spec:
   interval: 10m
   retryInterval: 5m
-  path: "gitops/ingress-nginx"
+  path: "gitops/traefik"
   prune: true
   sourceRef:
     kind: GitRepository

@@ -4,7 +4,7 @@ metadata:
   name: backend-ingress
   namespace: app-backend
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
   - host: frontend.127.0.0.1.traefik.me
     http:

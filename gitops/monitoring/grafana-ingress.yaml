@@ -3,10 +3,8 @@ kind: Ingress
 metadata:
   name: grafana-ingress
   namespace: monitoring
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
   - host: grafana.127.0.0.1.traefik.me
     http:

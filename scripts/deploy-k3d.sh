@@ -340,11 +340,10 @@ wait_for_service_endpoints() {
     done
 }
 
-# Wait for ingress-nginx admission webhook service endpoints before applying ingresses
-if ! wait_for_service_endpoints ingress-nginx ingress-nginx-controller-admission 160; then
-    echo "    ❌ ingress-nginx admission service endpoints not ready. The monitoring kustomization may fail to apply due to webhook validation errors."
-    echo "    🔧 You can try rerunning the script after a short wait or manually check: kubectl get endpoints -n ingress-nginx ingress-nginx-controller-admission -o yaml"
-    exit 1
+# Wait for Traefik to be ready before applying ingresses
+echo "    Waiting for Traefik to be ready..."
+if ! kubectl -n traefik wait --for=condition=Available deployment/traefik --timeout=180s 2>/dev/null; then
+    echo "    ⚠️  Traefik not ready yet, continuing anyway..."
 fi
 
 echo "    - 2/12: Reconciling monitoring kustomization..."

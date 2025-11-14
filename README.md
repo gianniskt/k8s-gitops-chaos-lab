@@ -12,7 +12,7 @@ Kubernetes GitOps Homelab with Flux, Linkerd, Cert-Manager, Chaos Mesh, Keda & P
 - **GitOps**: FluxCD configuration for automated deployments
 - **Chaos Engineering**: Chaos Mesh schedules and experiments
 - **Monitoring**: Prometheus + Grafana dashboards for observability
-- **Ingress**: Nginx ingress controller for external access
+- **Ingress**: Traefik ingress controller for external access
 - **Service Mesh**: Linkerd for observability and mTLS
 - **Autoscaling**: KEDA ScaledObjects wired to Prometheus metrics and optionally triggered by chaos experiments
 - **Deployment**: One-command setup script for local k3d (recommended)
@@ -69,7 +69,7 @@ The k3d script will:
 - Build container images and import them into k3d
 	- The script re-exports the k3d kubeconfig after import to avoid transient API routing issues
 - Install FluxCD Operator
-- Deploy GitOps components (Flux, cert-manager, Linkerd service mesh, KEDA, monitoring stack, ingress-nginx)
+- Deploy GitOps components (Flux, cert-manager, Linkerd service mesh, KEDA, monitoring stack, Traefik)
 - Deploy applications (FastAPI backend, JavaScript frontend microservices)
 - Deploy chaos engineering experiments and schedules
 - Configure monitoring and observability dashboards
@@ -129,4 +129,4 @@ cd k8s-gitops-chaos-lab
 
 ---
 
-**Stack**: K3d • FluxCD • Chaos Mesh • Linkerd • Prometheus • Grafana • cert-manager • KEDA • Reloader • ingress-nginx
+**Stack**: K3d • FluxCD • Chaos Mesh • Linkerd • Prometheus • Grafana • cert-manager • KEDA • Reloader • Traefik

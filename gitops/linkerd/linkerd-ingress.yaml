@@ -3,11 +3,8 @@ kind: Ingress
 metadata:
   name: linkerd-viz-ingress
   namespace: linkerd-viz
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/upstream-vhost: "web.linkerd-viz.svc.cluster.local"
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
   - host: linkerd.127.0.0.1.traefik.me
     http:
