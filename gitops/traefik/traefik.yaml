@@ -15,8 +15,9 @@ spec:
   interval: 5m
   install:
     createNamespace: true
+    crds: Skip  # Skip installing CRDs including Gateway API
   values:
-    # Disable Gateway API to avoid CRD conflicts with Linkerd
+    # Disable Gateway API to avoid CRD conflicts
     providers:
       kubernetesGateway:
         enabled: false

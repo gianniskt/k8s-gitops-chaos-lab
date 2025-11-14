@@ -13,3 +13,6 @@ spec:
         kind: HelmRepository
         name: linkerd-stable
         namespace: flux-system
+  values:
+    # Don't install Gateway API CRDs to avoid conflicts with other controllers
+    installGatewayAPI: false
