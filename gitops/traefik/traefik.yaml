@@ -58,12 +58,13 @@ spec:
         expose:
           default: false
     
-    # Additional arguments
+    # Additional arguments - enable CRD provider explicitly
     additionalArguments:
       - "--api.dashboard=true"
       - "--api.insecure=false"
       - "--log.level=INFO"
       - "--providers.kubernetesingress.ingressclass=traefik"
+      - "--providers.kubernetescrd=true"  # CRITICAL: Enable CRD provider to watch Middleware resources
     
     # Resources
     resources:
