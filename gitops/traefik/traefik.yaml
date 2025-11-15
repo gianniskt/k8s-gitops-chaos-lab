@@ -23,7 +23,7 @@ spec:
   values:
     # Explicitly enable Kubernetes Ingress provider
     providers:
-      kubernetesingress:
+      kubernetesIngress:
         enabled: true
         allowExternalNameServices: true
         allowEmptyServices: false
