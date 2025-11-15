@@ -21,4 +21,4 @@ spec:
     dashboard:
       enabled: true
     web:
-      enforcedHost: "^(localhost|127\\.0\\.0\\.1|linkerd\\.127\\.0\\.0\\.1\\.traefik\\.me|local\\.test|web\\.linkerd-viz\\.svc\\.cluster\\.local)(:\\d+)?$"
+      enforcedHostRegexp: "^(localhost|127\\.0\\.0\\.1|linkerd\\.127\\.0\\.0\\.1\\.traefik\\.me|local\\.test|web\\.linkerd-viz\\.svc\\.cluster\\.local)(:\\d+)?$"
