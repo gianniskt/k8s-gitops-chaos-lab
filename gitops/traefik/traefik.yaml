@@ -15,7 +15,27 @@ spec:
   interval: 5m
   install:
     createNamespace: true
+    crds: Skip  # Skip all CRDs - we install Middleware manually
+  upgrade:
+    crds: Skip
   values:
+    # Enable Kubernetes Ingress provider
+    providers:
+      kubernetesIngress:
+        enabled: true
+        allowExternalNameServices: true
+        allowEmptyServices: false
+      kubernetesGateway:
+        enabled: false  # Disable to avoid Linkerd conflicts
+      kubernetesCRD:
+        enabled: true  # Enable to watch Middleware resources
+        allowCrossNamespace: true
+        allowEmptyServices: true
+    
+    # Disable Gateway API CRDs explicitly
+    gateway:
+      enabled: false
+    
     # Enable dashboard
     ingressRoute:
       dashboard:
@@ -40,11 +60,13 @@ spec:
         expose:
           default: false
     
-    # Additional arguments
+    # Additional arguments - enable CRD provider explicitly
     additionalArguments:
       - "--api.dashboard=true"
       - "--api.insecure=false"
       - "--log.level=INFO"
+      - "--providers.kubernetesingress.ingressclass=traefik"
+      - "--providers.kubernetescrd=true"  # CRITICAL: Enable CRD provider to watch Middleware resources
     
     # Resources
     resources:
@@ -53,4 +75,4 @@ spec:
         memory: "128Mi"
       limits:
         cpu: "500m"
-        memory: "256Mi"
+        memory: "512Mi"

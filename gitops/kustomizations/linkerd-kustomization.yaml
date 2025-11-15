@@ -8,6 +8,7 @@ spec:
   retryInterval: 5m
   timeout: 10m
   dependsOn:
+    - name: traefik  # Wait for Traefik to install Gateway API CRDs first
     - name: linkerd-certificates
   path: "gitops/linkerd"
   prune: true

@@ -11,3 +11,14 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
+  timeout: 5m
+  wait: true
+  healthChecks:
+    - apiVersion: batch/v1
+      kind: Job
+      name: traefik-middleware-crd
+      namespace: traefik
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: traefik
+      namespace: traefik

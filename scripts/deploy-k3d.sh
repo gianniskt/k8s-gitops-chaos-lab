@@ -188,18 +188,51 @@ fi
 # Update the k3d kubeconfig with the correct server URL
 sed -i "s|https://.*:6550|${K3D_SERVER_URL}|g" /tmp/k3d-config
 
-# Backup current kubeconfig
-cp ~/.kube/config ~/.kube/config.backup.temp
+# Check if existing kubeconfig has actual content (not just empty/null values)
+HAS_CONTENT=false
+if [ -f ~/.kube/config ] && [ -s ~/.kube/config ]; then
+    # Check if config has any real clusters/contexts (not just null values)
+    if grep -q "clusters:" ~/.kube/config && ! grep -q "clusters: null" ~/.kube/config && ! grep -q "clusters: \[\]" ~/.kube/config; then
+        HAS_CONTENT=true
+    fi
+fi
 
 # Merge k3d context with existing kubeconfig
-KUBECONFIG="~/.kube/config:/tmp/k3d-config" kubectl config view --flatten > /tmp/merged-config
-cp /tmp/merged-config ~/.kube/config
+if [ "$HAS_CONTENT" = true ]; then
+    # Backup existing kubeconfig
+    cp ~/.kube/config ~/.kube/config.backup.$(date +%Y%m%d-%H%M%S)
+    
+    # Merge using kubectl with proper KUBECONFIG format
+    if [ -n "$USERPROFILE" ]; then
+        # Windows - use semicolon separator and try both path formats
+        KUBECONFIG="$(cygpath -w ~/.kube/config 2>/dev/null);$(cygpath -w /tmp/k3d-config 2>/dev/null)" kubectl config view --flatten > /tmp/merged-config 2>/dev/null || \
+        KUBECONFIG="$HOME/.kube/config;/tmp/k3d-config" kubectl config view --flatten > /tmp/merged-config
+    else
+        # Unix/Linux/macOS - use colon separator
+        KUBECONFIG="$HOME/.kube/config:/tmp/k3d-config" kubectl config view --flatten > /tmp/merged-config
+    fi
+    
+    if [ -s /tmp/merged-config ]; then
+        cp /tmp/merged-config ~/.kube/config
+        echo "  ✅ Merged k3d context with existing kubeconfig"
+    else
+        echo "  ⚠️  Merge failed, using k3d config only"
+        cp /tmp/k3d-config ~/.kube/config
+    fi
+else
+    # No existing config, empty config, or config with no content - just use k3d config
+    if [ -f ~/.kube/config ]; then
+        cp ~/.kube/config ~/.kube/config.backup.$(date +%Y%m%d-%H%M%S)
+    fi
+    cp /tmp/k3d-config ~/.kube/config
+    echo "  ✅ Created kubeconfig with k3d context"
+fi
 
 # Set k3d context as current
 kubectl config use-context k3d-${CLUSTER_NAME}
 
 # Clean up temporary files
-rm -f /tmp/k3d-config /tmp/merged-config ~/.kube/config.backup.temp
+rm -f /tmp/k3d-config /tmp/merged-config
 
 echo "✅ k3d context merged into existing kubeconfig with server: ${K3D_SERVER_URL}"
 
@@ -218,7 +251,14 @@ if [ "$ENVIRONMENT" = "devcontainer" ] && [ -n "$HOST_KUBE_PATH" ] && [ -d "$HOS
         echo "  📋 Backed up existing host kubeconfig"
         
         # Merge - preserve all contexts, update k3d context with correct server URL
-        KUBECONFIG="$HOST_KUBE_PATH/config:/tmp/kubeconfig-host" kubectl config view --flatten > "$HOST_KUBE_PATH/config.merged"
+        # Use proper path separator for the OS (: for Unix, ; for Windows)
+        if [ -n "$USERPROFILE" ]; then
+            # Windows - use semicolon separator
+            KUBECONFIG="$HOST_KUBE_PATH/config;/tmp/kubeconfig-host" kubectl config view --flatten > "$HOST_KUBE_PATH/config.merged"
+        else
+            # Unix/Linux/macOS - use colon separator
+            KUBECONFIG="$HOST_KUBE_PATH/config:/tmp/kubeconfig-host" kubectl config view --flatten > "$HOST_KUBE_PATH/config.merged"
+        fi
         mv "$HOST_KUBE_PATH/config.merged" "$HOST_KUBE_PATH/config"
         
         # Set k3d context as current on host
