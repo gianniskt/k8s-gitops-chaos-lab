@@ -6,5 +6,4 @@ resources:
   - helmrepo.yaml
   - monitoring-stack.yaml
   - grafana-ingress.yaml
-  - grafana-middleware.yaml
   - dashboards/chaos-dashboard.yaml
