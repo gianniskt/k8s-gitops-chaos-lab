@@ -7,4 +7,3 @@ resources:
   - linkerd-control-plane.yaml
   - linkerd-viz.yaml
   - linkerd-ingress.yaml
-  - linkerd-middleware.yaml
