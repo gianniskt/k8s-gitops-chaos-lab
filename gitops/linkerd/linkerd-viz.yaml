@@ -20,5 +20,4 @@ spec:
     # Enable the Linkerd dashboard
     dashboard:
       enabled: true
-    web:
       enforcedHostRegexp: "^(localhost|127\\.0\\.0\\.1|linkerd\\.127\\.0\\.0\\.1\\.traefik\\.me|local\\.test|web\\.linkerd-viz\\.svc\\.cluster\\.local)(:\\d+)?$"
