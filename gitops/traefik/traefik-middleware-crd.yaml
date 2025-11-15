@@ -1,0 +1,137 @@
+---
+# Minimal Middleware CRD installation
+# This avoids Gateway API CRDs that conflict with Linkerd
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-middleware-crd
+  namespace: traefik
+data:
+  middleware-crd.yaml: |
+    apiVersion: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    metadata:
+      name: middlewares.traefik.io
+      annotations:
+        controller-gen.kubebuilder.io/version: v0.16.5
+    spec:
+      group: traefik.io
+      names:
+        kind: Middleware
+        listKind: MiddlewareList
+        plural: middlewares
+        singular: middleware
+      scope: Namespaced
+      versions:
+      - name: v1alpha1
+        schema:
+          openAPIV3Schema:
+            description: Middleware is the CRD implementation of a Traefik Middleware.
+            properties:
+              apiVersion:
+                type: string
+              kind:
+                type: string
+              metadata:
+                type: object
+              spec:
+                description: MiddlewareSpec defines the desired state of a Middleware.
+                properties:
+                  addPrefix:
+                    properties:
+                      prefix:
+                        type: string
+                    type: object
+                  headers:
+                    properties:
+                      customRequestHeaders:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      customResponseHeaders:
+                        additionalProperties:
+                          type: string
+                        type: object
+                    type: object
+                  stripPrefix:
+                    properties:
+                      prefixes:
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                type: object
+            required:
+            - metadata
+            - spec
+            type: object
+        served: true
+        storage: true
+  install.sh: |
+    #!/bin/sh
+    set -e
+    echo "Installing Traefik Middleware CRD..."
+    kubectl apply -f /crds/middleware-crd.yaml
+    echo "Middleware CRD installed successfully"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: traefik-middleware-crd
+  namespace: traefik
+spec:
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      serviceAccountName: traefik-middleware-crd
+      restartPolicy: OnFailure
+      containers:
+      - name: installer
+        image: bitnami/kubectl:latest
+        command: ["/bin/sh", "/scripts/install.sh"]
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+        - name: crds
+          mountPath: /crds
+      volumes:
+      - name: scripts
+        configMap:
+          name: traefik-middleware-crd
+          items:
+          - key: install.sh
+            path: install.sh
+      - name: crds
+        configMap:
+          name: traefik-middleware-crd
+          items:
+          - key: middleware-crd.yaml
+            path: middleware-crd.yaml
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: traefik-middleware-crd
+  namespace: traefik
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: traefik-middleware-crd
+rules:
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["get", "list", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: traefik-middleware-crd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: traefik-middleware-crd
+subjects:
+- kind: ServiceAccount
+  name: traefik-middleware-crd
+  namespace: traefik

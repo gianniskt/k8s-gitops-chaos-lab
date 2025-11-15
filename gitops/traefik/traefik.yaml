@@ -15,9 +15,9 @@ spec:
   interval: 5m
   install:
     createNamespace: true
-    crds: CreateReplace  # Let Traefik manage its own CRDs
+    crds: Skip  # Skip all CRDs - we install Middleware manually
   upgrade:
-    crds: CreateReplace  # Update CRDs on upgrade
+    crds: Skip
   values:
     # Enable Kubernetes Ingress provider
     providers:
@@ -27,6 +27,8 @@ spec:
         allowEmptyServices: false
       kubernetesGateway:
         enabled: false  # Disable to avoid Linkerd conflicts
+      kubernetesCRD:
+        enabled: true  # Enable to watch Middleware resources
     
     # Disable Gateway API CRDs explicitly
     gateway:
