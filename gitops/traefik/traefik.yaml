@@ -16,9 +16,15 @@ spec:
   install:
     createNamespace: true
     crds: Skip  # Skip all CRDs - we install Middleware CRD separately
+  upgrade:
+    crds: Skip
   values:
-    # Disable Gateway API to avoid CRD conflicts
+    # Explicitly enable Kubernetes Ingress provider
     providers:
+      kubernetesingress:
+        enabled: true
+        allowExternalNameServices: true
+        allowEmptyServices: false
       kubernetesGateway:
         enabled: false
     
