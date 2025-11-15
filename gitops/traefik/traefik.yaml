@@ -29,6 +29,8 @@ spec:
         enabled: false  # Disable to avoid Linkerd conflicts
       kubernetesCRD:
         enabled: true  # Enable to watch Middleware resources
+        allowCrossNamespace: true
+        allowEmptyServices: true
     
     # Disable Gateway API CRDs explicitly
     gateway:
