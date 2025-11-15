@@ -4,8 +4,6 @@ metadata:
   name: traefik
   namespace: traefik
 spec:
-  dependsOn:
-    - name: traefik-crds
   chart:
     spec:
       chart: traefik
