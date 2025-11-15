@@ -11,3 +11,11 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
+  # Wait for CRD installation Job to complete before applying resources
+  healthChecks:
+    - apiVersion: batch/v1
+      kind: Job
+      name: traefik-crds-installer
+      namespace: traefik
+  # Allow time for Job to complete
+  timeout: 5m
